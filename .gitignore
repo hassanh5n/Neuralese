@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Virtual environment
+neuralese-env/
+venv/
+.venv/
+
+# Hugging Face / model cache (don't commit downloaded weights — huge, and re-downloadable)
+.cache/
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs / outputs you don't want tracked
+*.log
