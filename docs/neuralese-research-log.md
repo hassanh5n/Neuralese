@@ -29,6 +29,38 @@ Status: **Checkpoint passes** — manual baseline is byte-for-byte validated aga
 
 ---
 
+## Review Notes — 2026-07-22 (external validation pass)
+
+Cross-checked the methodology against the actual `Soft-Thinking` repo (now hosted as `UCSB-AI/Soft-Thinking`, formerly under `eric-ai-lab`) and the surrounding literature. Two corrections and one scope caveat came out of it. Logging them here rather than editing the entries above, so the decision trail stays visible.
+
+**Correction — Dirichlet/Gumbel noise should not have been omitted.**
+
+The "unused in the paper" read was true only of the *original* Soft Thinking paper (Zhang et al., arXiv:2505.15778). A direct follow-up, *LLMs are Single-threaded Reasoners: Demystifying the Working Mechanism of Soft Thinking* (Wu et al., arXiv:2508.03440), is specifically about research question (2). Its finding: vanilla Soft Thinking collapses into single-path, greedy-like decoding — the "Greedy Pitfall" — because the model's own next-token distribution is almost always dominated by one token, leaving too little real ambiguity to blend. Their fix, which the repo has since adopted, is exactly the noise mechanism this log skipped.
+
+Two variants, not equivalent:
+- **Gumbel-Softmax** (repo default `τ = 0.5`): `y_i = softmax_i((log(π_i) + g_i) / τ)`, `g_i ~ Gumbel(0,1)`, applied to the already top-k/top-p-filtered, renormalized weights `π`. Recommended by the paper — gives controllable randomness without the tradeoff below.
+- **Dirichlet resampling** (repo default `γ = 1.0`, exposed as `dirichlet_temperature` though it isn't a temperature): sample from `Dir(γ·π)`. Paper found a real limitation — low `γ` gives high randomness but individual samples still collapse near one-hot; high `γ` gives smoothness but loses randomness. Can't get both from this one.
+
+**Implication for Exp 1–3:** the consistently-high, shallow-dip weights observed so far are consistent with the Greedy Pitfall, independently of the preamble-budget issue already identified in Exp 3. Both explanations may be stacked. Re-run planned (see Next steps).
+
+**Scope caveat — small-model behavior may not generalize.**
+
+The repo's own reproduction notes warn that Soft Thinking underperforms on models ≤7B, attributed to smaller hidden sizes placing the last hidden state close to unrelated embeddings, adding noise to the mixture. `Qwen2.5-0.5B`/`1.5B` (chosen here for CPU feasibility) sit well inside that range. Doesn't block the mechanistic study — it's still a valid question what *these* models do — but any write-up should scope claims to small-scale models rather than imply generalization to the 32B scale the original superposition claims were made on.
+
+**Refinement — what actually needs a logit lens.**
+
+The blended embedding itself isn't a target for the lens — it's already fully known by construction (`Σ weight_i · embedding[token_i]`, and `kept_idx`/`weights` already give the full readout). What genuinely needs decoding is the model's *hidden states* — the residual-stream representations it computes internally after consuming that blended input at each layer. Those aren't mixtures of known embeddings; they're transformed, and reading them requires projecting through the model's final norm + unembedding (the actual logit-lens operation). Same logic applies to causal patching for research question (3): patching the input embedding just re-tests "does a different input change the output" (trivially yes). Patching a hidden state mid-network is what actually tests whether the surface-visible mixture content is causally load-bearing or decorative.
+
+Practical consequence: `generate_soft_then_hard` needs to additionally capture `output_hidden_states=True` per step, not just the blended vector + weights it already logs.
+
+**Minor correction — repetition_penalty bug diagnosis.**
+
+`temperature`/`top_k`/`top_p` are skipped by HF's own generation logic when `do_sample=False`; they weren't the actual cause of the mismatch in bug #1 above. `repetition_penalty` is a logits processor that applies regardless of sampling mode, so that part of the fix was the one doing the real work. Doesn't change the outcome — checkpoint still passes byte-for-byte — just correcting the mechanism for the record.
+
+References: Zhang et al. 2025, *Soft Thinking: Unlocking the Reasoning Potential of LLMs in Continuous Concept Space*, arXiv:2505.15778. Wu et al. 2025, *LLMs are Single-threaded Reasoners: Demystifying the Working Mechanism of Soft Thinking*, arXiv:2508.03440.
+
+---
+
 ## Experiment Log
 
 ### Exp 1 — Arithmetic ("43 * 34 = ?")
@@ -55,9 +87,13 @@ Status: **Checkpoint passes** — manual baseline is byte-for-byte validated aga
 
 - So far, every genuine sub-0.9 dip has coincided with plausible, human-identifiable alternative continuations (synonym choice, punctuation choice, opening-phrase choice) — consistent with *some* real blending mechanism, but none of it yet at the level of "two different solution paths" that the superposition claim is actually about.
 - Model verbosity/preamble length is a real confound for this experiment design — need enough soft-step budget to reach the actual fork, which varies a lot by prompt and needs to be checked per-prompt rather than assumed.
-- Still pending: logit-lens decoding of the full mixture (not just top-1 weight) at each step, and causal patching to test whether a blended vector actually drives the outcome or is decorative.
+- Still pending: logit-lens decoding of hidden states (not just the already-known top-1 mixture weight) at each step, and causal patching to test whether a step's internal representation actually drives the outcome or is decorative.
+- The Greedy Pitfall (Wu et al., arXiv:2508.03440) predicts exactly the shallow-dip pattern seen so far in noise-free soft thinking — treat as a competing/complementary hypothesis alongside the preamble-budget explanation, not a replacement for it. Needs a controlled comparison (vanilla vs. noised, same prompt, same budget) to separate the two.
 
 ## Next steps
-1. Re-run water-jug puzzle with either extended `soft_steps` or a more direct prompt, to actually capture the fill-3-vs-fill-5 decision inside the soft phase.
-2. Once a real fork is captured with a meaningful weight dip, add logit-lens decoding of the full top-k mixture at that step (not just the top-1 token) to see whether it looks like "3 and 5 both present" or something else entirely.
-3. Add causal patching: swap the blended vector at the fork step, see if it changes which scenario the hard phase commits to.
+1. Add a `noise` parameter (`"gumbel"` / `"dirichlet"` / `None`) to `soft_thinking_step`, inserted after top-k/top-p renormalization and before the embedding blend. Default stays `None` so Exp 1–3 remain reproducible as a baseline.
+2. Re-run the water-jug prompt at an extended step budget (~70–80) in three conditions — vanilla, Gumbel-Softmax (`τ=0.5`), Dirichlet (`γ=1.0`) — and compare weight/entropy traces at the fill-3-vs-fill-5 decision point specifically.
+3. Add per-step entropy logging (`-Σ p·log p` over the renormalized kept weights) alongside the existing weight log. Cheap, and turns fork-finding from manual scanning into something plottable across a whole run.
+4. Add `output_hidden_states=True` capture to `generate_soft_then_hard`; write a `logit_lens(model, hidden_vector, top_n)` utility that projects a hidden state through `model.model.norm` + `model.lm_head`. Note this is an approximation (the final norm wasn't trained for intermediate layers) — sanity-check by confirming the last layer's lens output exactly matches the model's actual argmax choice.
+5. Once (4) is in place, decode the full top-k mixture *and* the internal hidden-state lens for the same step in the same run, side by side — first real look at whether they agree.
+6. Causal patching harness: a forward hook on `model.model.layers[L]` that overwrites the last-position hidden state at a chosen generation step; compare patched vs. unpatched continuation on the hard phase to test whether the lens-visible content is actually load-bearing.
