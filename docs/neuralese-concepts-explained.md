@@ -291,35 +291,41 @@ worse) is covered in Part 5.
 branches "in mind" at once, rather than committing to one path early — mirroring what an explicit
 search algorithm does.
 
-**Why math/graph benchmarks aren't rigorous enough:** on an open-ended math problem, "the model is
-exploring multiple paths" is largely a matter of interpretation — there's no single, externally
-verifiable list of "the branches a correct solver would have open at this exact point." A
-constraint satisfaction problem gives you that for free.
+**Update (2026-08-05):** the direct version of this question — training-free soft thinking vs.
+fine-tuned vs. from-scratch training, checked with logit lens and entity-level probing — has now
+been tested at real scale in the literature (Rizvi-Martel et al., *The Illusion of Superposition?*,
+arXiv:2604.06374). Their finding: only from-scratch-trained models show real superposition;
+training-free soft thinking (this project's method) either collapses it within the first few layers
+or doesn't use it at all, often finding shortcut solutions instead. They also flag that a lot of
+soft-thinking "blending" is just syntactic noise (punctuation vs. words with similar logits) rather
+than alternative-path exploration — worth remembering when reading this project's own weight traces
+in the Experiment Log, where the low-confidence dips found so far are exactly this kind of
+word/punctuation-choice ambiguity, not two different solution paths.
 
-**Constraint Satisfaction Problem (CSP), briefly:** a set of variables, each with a domain of
-possible values, and constraints restricting which combinations of values are legal (e.g., exam
-scheduling: variables = exams, domain = time slots, constraint = no two exams sharing a student can
-share a slot).
+Because of this, the project no longer needs a bespoke ground-truth task (the earlier plan to use a
+CSP solver as ground truth has been dropped). The specific, still-open question is narrower and
+doesn't need a new domain: **does adding noise to fix the Greedy Pitfall (Part 3) restore genuine,
+causally-load-bearing superposition — visible via logit lens *and* confirmed via causal patching —
+or does it just add beneficial randomness across otherwise still-individually-greedy rollouts?**
+Nobody has run the full interpretability battery (lens + patching, not just lens) on the *noised*
+variant of soft thinking. That's this project's contribution for track (2).
 
-**Backtracking search:** the classical way to solve a CSP — pick an unassigned variable, try a value
-from its domain, recursively try to assign the rest; if you hit a dead end (no legal value for some
-later variable), *backtrack* — undo the last assignment and try a different value. This is
-depth-first search with pruning.
+**Update (2026-08-24):** checked again — still open, but two close neighbors are worth knowing about.
+Rizvi-Martel ran a lighter check than full causal patching: swapping the soft mixture for a discrete
+token and comparing hidden states via logit lens, finding little difference (not the same as
+overwriting a hidden state and checking if the final answer flips). Separately, two other papers
+(Li et al., arXiv:2602.08783; Zhang et al., arXiv:2512.21711) already run *real* causal patching —
+but on Coconut/CODI, a different latent-reasoning method (raw hidden state fed back, not a weighted
+mixture of token embeddings like Soft Thinking). Both found the patched latent steps were mostly
+decorative, not causally load-bearing. **Decision: don't rebuild a second harness for Coconut/CODI.**
+Instead, once this project's own Soft Thinking + noise + causal-patching results are ready, compare
+them against these two papers' *published* numbers as a reference point — cheaper, and still gives
+a "does this hold across both latent-CoT families" angle for the write-up.
 
-**MRV (Minimum Remaining Values) heuristic:** when picking which variable to assign next, choose the
-one with the *fewest* legal values left in its domain. Intuition: that variable is most likely to
-cause a dead end soonest, so resolving it first fails fast and prunes the search tree earlier rather
-than wasting work on easier variables first.
+### 5.2 Faithfulness and training method (question 3) — Future Work, not active
 
-The point of using your own CSP solver as ground truth: at any point in a backtracking run, you know
-*exactly* which values are still live candidates for the current variable — no interpretation
-needed. That's the yardstick the model's blended-vector behavior gets measured against: when the
-model is at an equivalent decision point, do its mixture weights and hidden-state contents actually
-track a similar live-candidate set, and does patching them shift the outcome the way patching a
-branch choice would in the real solver? Or does it just look diffuse without carrying real,
-usable information about alternatives?
-
-### 5.2 Faithfulness and training method (question 3)
+**Status: parked until track (2) is finished.** Kept here as the fully-scoped plan for later, not
+something to start on now.
 
 **Why training method might matter:** in supervised fine-tuning (SFT), every single output token is
 directly trained to match a human-written demonstration (cross-entropy loss against real text). This
@@ -333,6 +339,17 @@ Nothing stops the model from drifting toward whatever internal shorthand reliabl
 even if it stops verbalizing into recognizable human concepts. That's the mechanism behind the
 worry that RL-trained models' visible reasoning traces might become less faithful — more decorative,
 in the sense from 4.4 — than SFT models' traces, even if both produce fluent-looking text.
+
+**Where the RL-trained checkpoint for this comparison will come from:** training a model with RL
+from scratch is a much bigger lift than SFT, normally requiring many sampled rollouts per training
+step. Butt et al. (*Soft Tokens, Hard Truths*, arXiv:2509.19170) found a way to make continuous-CoT
+RL training scale down reasonably: instead of sampling a discrete token at each CoT step (which
+would block gradients from flowing), they add continuous noise directly to the input embedding at
+each step, which gives the RL algorithm something to explore *and* keeps everything differentiable,
+then train with a standard policy-gradient objective scored only on whether the final answer was
+right. This project's plan reuses that same idea at a small scale — noise on the embedding, reward
+on final-answer correctness for short, exactly-checkable prompts — to produce a comparably-sized
+RL-only checkpoint of the same base model already used for the SFT/instruct-tuned baseline.
 
 ---
 
@@ -404,9 +421,6 @@ flag candidate fork points automatically instead of manually.
 | Logit lens | Decoding an intermediate hidden state by running it through the final norm + unembedding early |
 | Causal / activation patching | Overwriting one internal value and observing whether the final output changes |
 | Faithfulness | Whether lens-visible content matches what patching shows is actually driving the output |
-| CSP | Constraint Satisfaction Problem — variables, domains, constraints |
-| Backtracking search | DFS with pruning: assign, recurse, undo on dead end |
-| MRV heuristic | Assign the most-constrained variable (fewest legal values) next, to fail fast |
 | SFT vs. RL | Token-level supervision against human text vs. outcome-only reward — affects whether intermediate steps stay human-legible |
 | KV cache | Cached per-layer key/value tensors so generation doesn't recompute the full sequence every step |
 | Forward hook | A callback that intercepts a module's output during its forward pass |
