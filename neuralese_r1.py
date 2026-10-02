@@ -23,7 +23,8 @@ PROMPT = (
     "You need to end up with exactly 4 liters in one of the jugs. "
     "What is the first thing you do?"
 )
-OUT_DIR = "/content/drive/MyDrive/neuralese_runs"
+# Kaggle: /kaggle/working is saved with each notebook version; Colab: Google Drive.
+OUT_DIR = "/kaggle/working" if os.path.isdir("/kaggle/working") else "/content/drive/MyDrive/neuralese_runs"
 
 # Soft Thinking repo defaults (UCSB-AI/Soft-Thinking README run command).
 TEMPERATURE, MAX_TOPK, TOP_P, MIN_P = 0.6, 10, 0.95, 0.001

@@ -779,3 +779,148 @@ validated final-layer lens at record `t+1`, alongside that incoming mixture. Re-
 vanilla / Gumbel-seed-123 screen and inspect the pair `mixture_9` → `lens_10`. This still needs no
 hard phase and should remain a minutes-scale run. Do not begin activation patching until this
 time-aligned test is working and a decision-relevant effect replicates.
+
+---
+
+## Review Notes — 2026-09-28 (full audit of both logs + all three scripts)
+
+A complete read of both logs, the concepts doc, `neuralese_harness.py`, `neuralese_harness_v2.py`
+and `neuralese_target_probe.py`. Findings, in order of impact:
+
+1. **Exp 9, Exp 11A and Exp 12A are invalid, for two independent reasons.**
+   - *Double normalization.* In this Transformers version `hidden_states[-1]` is already
+     final-normalized. The 0.5B harness applied `model.model.norm` a second time.
+     `check_lens_checkpoint` did not catch it: it compared top-1 only, at one step, and tested the
+     with-norm path first (double norm usually preserves top-1). Exp 13 later measured the damage
+     at 1.5B: max logit error 10.5. The "lens sharpens / lens flattens" patterns in Exp 9 are this
+     distortion.
+   - *Same-pass comparison.* Record `t` stores the hidden state that *produced* mixture `t`. With a
+     correct lens, "lens at t" is simply the model's own pre-noise distribution. Exp 9's 7/18
+     "disagreements" therefore only count how often noise flipped the model's own top-1 — which
+     noise does by construction. Not evidence about superposition either way.
+   - Exp 11A probes the same record, so it also never looked at how the mixture was processed.
+   - Reinterpretation kept for the record: Gumbel seed 2 / step 80 ("hidden state knew '2'") means
+     noise overrode the model's own preferred '2' with '4'. A statement about noise, not about
+     internal blending.
+2. **`neuralese_target_probe.py` should not be run as written.** It pairs `mixture_9` (candidates
+   for token position 10, e.g. '5' vs '3') with the final-layer lens at pass 10, which predicts the
+   *next* token (e.g. '-liter'). Both candidates would vanish and it would look like collapse.
+   Correct design: counterfactual comparison at pass `t+1` — feed the blend, pure candidate A and
+   pure candidate B, compare next-token distributions (KL) and per-layer hidden states; sweep the
+   blend weight α from 0 to 1 (smooth response = carries both; step function = winner-take-all).
+   This extends Wu et al.'s 0.6/0.4 branching experiment to real noise-generated mixtures.
+3. **V2 activation patch at `ACTIVATION_LAYER=-1` is nearly a no-op mechanistically.** The final
+   layer's output at the last position only feeds that pass's logits; the KV cache for that
+   position was already computed from the original blend. It amounts to replacing one next-token
+   distribution. Needs a middle-layer sweep.
+4. **The surviving pilot result is Exp 10 / 12B "blend behaves exactly like its top-1"** — but it is
+   2 of 4 targets, one prompt, 0.5B, measured by byte-identical text (coarse; logit-level effect
+   should be measured). Target 1 (Gumbel s=2, step 80) should be excluded: its unpatched output is
+   post-EOS system-prompt drift.
+5. **Method mismatch.** Soft Thinking (Zhang et al.) and Wu et al. run inside the `<think>` phase of
+   reasoning models (R1-Distill-Qwen-32B, QwQ-32B, Skywork-OR1-32B), end at `</think>`, and use
+   Cold Stop. The harness used a non-reasoning Instruct model, a fixed 100-step budget, no Cold Stop.
+6. **Task.** "What is the first thing you do?" has two valid answers, so correctness can't be scored;
+   one prompt can't carry a claim.
+7. **Citation note.** arXiv:2508.03440 has been retitled across versions: earlier versions are
+   "LLMs Have a Heart of Stone: Demystifying the Soft Thinking Ability of Large Reasoning Models";
+   v4 is "LLMs are Single-threaded Reasoners: Demystifying the Working Mechanism of Soft Thinking".
+   Cite with version number.
+8. Minor: concepts doc §6.1 says the patching harness doesn't use the KV cache; the code does.
+
+**Status after this review.** Exp 1–13 are treated as a **pilot study**. Kept: the research question,
+literature map, harness design lessons, validation gates, and qualitative observations (Greedy
+Pitfall; blends sometimes acting exactly like their top-1). Withdrawn as quantitative evidence:
+Exp 9, 11A, 12A, 13 (lens-vs-mixture comparisons). All new data comes from the setup below.
+
+---
+
+## Methodology change — 2026-09-28: `neuralese_r1.py` on GPU
+
+- **Compute:** Google Colab T4 GPU, fp32 (keeps parity with the CPU runs). ~1–4 min per run vs ~1 h
+  on CPU.
+- **Model:** `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B` (reasoning model, same family/size as
+  before).
+- **Method, faithful to the Soft Thinking repo run command:** soft phase only inside `<think>`;
+  ends when the mixture's top-1 is `</think>` or EOS, at Cold Stop, or at the step budget; then a
+  real `</think>` is fed and the answer is decoded greedily (repo samples at T=0.6; greedy chosen
+  for reproducibility).
+- **Settings:** temperature 0.6, max_topk 10, top_p 0.95, min_p 0.001, Cold Stop entropy 0.01 for
+  256 consecutive steps (entropy measured on pre-noise weights), Gumbel τ=0.5, Dirichlet γ=1.0.
+  Note: these differ from the old harness (top-15, no temperature) — not comparable with Exp 1–13.
+- **Gates (stop the run on failure):** (1) hand-written greedy loop == `model.generate()`;
+  (2) final hidden state reconstructs live logits under exactly one convention (tolerance 1e-3);
+  (3) in vanilla, mixture top-1 == raw argmax at every step.
+- **Output:** one JSON per run (config + per-step ids/weights/entropy/raw argmax + answer).
+
+## Exp 14 — R1-Distill smoke test on the water-jug prompt (2026-09-28)
+
+Same water-jug prompt as Exp 2–13. Conditions: vanilla, Gumbel seeds 0/1/2. MAX_THINK 4096.
+
+- **Gate 1:** pass. **Gate 2:** `already_normalized` max error 3.2e-5, `pre_norm` 11.57, top-1 all
+  match → confirms the double-normalization bug in the 0.5B lens results.
+
+| Condition | Stop reason | Think steps | Time | Answer |
+|---|---|---:|---:|---|
+| Vanilla | cold_stop | 2761 | 130 s | fill the 5-liter jug |
+| Gumbel s=0 | think_end | 1509 | 77 s | fill the 5-liter jug, `\boxed{5}` |
+| Gumbel s=1 | budget | 4096 | 217 s | fill the 5-liter jug (cut off) |
+| Gumbel s=2 | think_end | 2707 | 125 s | fill the 5-liter jug, `\boxed{5}` |
+
+- 4/4 give a valid first move (vs 0/15 for 0.5B Instruct in Exp 5–8). n=1 per condition, one prompt.
+- Thinking tails: **vanilla was a verbatim repetition loop** (Greedy Pitfall on a reasoning model —
+  Cold Stop worked as intended). Gumbel s=1 was *not* a loop: valid verification of the fill-3-first
+  route, cut off by the budget. Gumbel s=0: right answer, wrong justification (claims fill-3-first
+  can't work). Gumbel s=2 hallucinated a `\boxed{}` instruction and argued about answer format.
+- Changes from this: MAX_THINK 4096 → 8192; added a `"discrete"` mode (ordinary sampled CoT,
+  one-hot "mixture" from the same filtered set; no Cold Stop, matching the repo baseline).
+
+## Exp 15 — ProsQA accuracy (partial, abandoned) (2026-10-02)
+
+First 30 ProsQA test items (Coconut repo), prompt + "Please reason step by step, and put your final
+answer within \boxed{}." Conditions: discrete s=0/1, vanilla, Gumbel s=0/1. Scored correct if the
+last `\boxed{}` names the target concept and not the distractor. Stopped at 53/150 runs by the Colab
+free-tier GPU limit (~5 h).
+
+| Condition | Correct | Wrong answer | No answer | Hit 8192 budget | Cold Stop |
+|---|---:|---:|---:|---:|---:|
+| Discrete CoT | 4/22 | 5 | 13 | 16 | 0 |
+| Vanilla | 2/11 | 1 | 8 | 0 | 9 of first 10 |
+| Gumbel | 3/20 | 7 | 10 | 9 | 5 |
+
+- Chance on a two-option question is 50%; every condition is far below it because most runs never
+  produce an answer. Traces show the model inventing rules not in the problem ("every yimpus is a
+  sterpus") and declining to choose. **Conclusion: ProsQA is beyond R1-Distill-1.5B within 8192
+  steps; these numbers say nothing about Soft Thinking.** ProsQA stays a candidate for the later
+  α-sweep, which only needs fork points, not finished answers.
+- Scorer flaw noted: case-sensitive and exact-word, so "Sterpus" / "Sterpu" would count as wrong. Did
+  not change these results (examined cases were wrong anyway); not carried into the GSM8K scorer.
+- Budget-hit runs take ~8 min each → the full 150 would need ~15 GPU hours.
+
+## Decision — 2026-10-02/03: switch Step 3 to GSM8K, move compute to Kaggle
+
+- **GSM8K** (first 30 test problems, OpenAI grade-school-math repo), same five conditions, same
+  suffix. Scored by the last number inside the last `\boxed{}` (brace-matched; handles `$1,250.00`,
+  "18 dollars"); rows record correct / answered so wrong vs no-answer are separated. Results file
+  `gsm8k_eval.jsonl`. Target: most runs answering, accuracy in a 30–80% band so conditions can differ.
+- **Kaggle** replaces Colab (Colab free tier capped at ~5 GPU h). `OUT_DIR` auto-selects
+  `/kaggle/working` on Kaggle. Code uploaded as a Kaggle dataset; run as a committed notebook
+  version (runs in background up to 12 h; output saved with the version). Cells:
+  ```
+  !pip -q install -U transformers
+  !cp $(find /kaggle/input -name "neuralese_*.py") /kaggle/working/
+  !cp $(find /kaggle/input -name "gsm8k_eval.jsonl") /kaggle/working/ 2>/dev/null; true
+  %cd /kaggle/working
+  %run neuralese_eval.py
+  ```
+  To resume after a stopped version: attach the previous version's output as an input; the second
+  `cp` line restores finished runs and they are skipped.
+
+**What Step 3 decides:** (a) does the setup reproduce Wu et al.'s pattern (vanilla held back by the
+Greedy Pitfall, Gumbel helps)? (b) Gumbel vs discrete sampling — both random; Gumbel ≈ sampling
+suggests noise's benefit could be ordinary randomness (rollout diversity), Gumbel > sampling makes
+the superposition hypothesis worth the Step 4 test.
+
+**Next after Step 3:** Step 4 — counterfactual α-sweep at fork points (blend vs pure candidates,
+per-layer); Step 5 — middle-layer activation patching with control donors, measured on answer
+correctness / answer-logit difference; then replication across items and seeds, with statistics.
