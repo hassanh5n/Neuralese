@@ -1,3 +1,12 @@
+"""Soft Thinking on DeepSeek-R1-Distill-Qwen-1.5B, Colab T4 (steps 1-2).
+
+Colab (Runtime > Change runtime type > T4 GPU). Put this file and
+neuralese_harness_v2.py in MyDrive/Neuralese, then run these cells:
+  from google.colab import drive; drive.mount('/content/drive')
+  !pip -q install -U transformers
+  %cd /content/drive/MyDrive/Neuralese
+  %run neuralese_r1.py
+"""
 import json
 import os
 import time
@@ -20,7 +29,7 @@ OUT_DIR = "/content/drive/MyDrive/neuralese_runs"
 TEMPERATURE, MAX_TOPK, TOP_P, MIN_P = 0.6, 10, 0.95, 0.001
 COLD_STOP_ENTROPY, COLD_STOP_LEN = 0.01, 256
 GUMBEL_TAU, DIRICHLET_GAMMA = 0.5, 1.0
-MAX_THINK, MAX_ANSWER = 4096, 512
+MAX_THINK, MAX_ANSWER = 8192, 512  # 4096 cut off a valid gumbel trace
 LENS_TOL = 1e-3  # ponytail: GPU fp32 GEMM drift is ~1e-5..1e-4; the wrong convention is ~10
 CONDITIONS = [(None, 0), ("gumbel", 0), ("gumbel", 1), ("gumbel", 2)]
 
@@ -36,6 +45,9 @@ def concept_token(embed, logits, noise):
         w = F.gumbel_softmax(w.clamp_min(1e-12).log(), tau=GUMBEL_TAU, dim=-1)
     elif noise == "dirichlet":
         w = torch.distributions.Dirichlet((w * DIRICHLET_GAMMA).clamp_min(1e-6)).sample()
+    elif noise == "discrete":  # ordinary sampled CoT: a one-hot "mixture" == feeding the token id
+        # ponytail: samples from the same top-10/min-p set as the soft arms; repo baseline uses top-30, min-p 0
+        w = F.one_hot(torch.multinomial(w, 1)[:, 0], w.shape[-1]).to(w.dtype)
     return (embed[ids] * w.unsqueeze(-1)).sum(1), w, ids, h
 
 
@@ -62,7 +74,7 @@ def run(model, tok, inputs, noise, seed, gate_steps=()):
         if top in (think_end, eos):
             reason = "think_end" if top == think_end else "eos_in_think"
             break
-        if low >= COLD_STOP_LEN:
+        if noise != "discrete" and low >= COLD_STOP_LEN:  # repo baseline runs without Cold Stop
             reason = "cold_stop"
             break
         feed = {"inputs_embeds": blend.unsqueeze(1)}
@@ -82,6 +94,21 @@ def run(model, tok, inputs, noise, seed, gate_steps=()):
             "answer": tok.decode(answer), "steps": steps}, gate
 
 
+def load():
+    tok = AutoTokenizer.from_pretrained(MODEL)
+    model = AutoModelForCausalLM.from_pretrained(MODEL, dtype=torch.float32).to("cuda").eval()
+    assert len(tok.encode("</think>", add_special_tokens=False)) == 1, "</think> is not one token"
+    return tok, model
+
+
+def make_inputs(tok, prompt):
+    text = tok.apply_chat_template([{"role": "user", "content": prompt}],
+                                   add_generation_prompt=True, tokenize=False)
+    if not text.rstrip().endswith("<think>"):  # older template versions omit it
+        text += "<think>\n"
+    return tok(text, return_tensors="pt", add_special_tokens=False).to("cuda")
+
+
 @torch.no_grad()
 def lens_gate(model, gate):
     err = {name: max((model.lm_head(f(h)) - lg).abs().max().item() for h, lg in gate)
@@ -93,15 +120,8 @@ def lens_gate(model, gate):
 
 
 def main():
-    tok = AutoTokenizer.from_pretrained(MODEL)
-    model = AutoModelForCausalLM.from_pretrained(MODEL, dtype=torch.float32).to("cuda").eval()
-    assert len(tok.encode("</think>", add_special_tokens=False)) == 1, "</think> is not one token"
-
-    text = tok.apply_chat_template([{"role": "user", "content": PROMPT}],
-                                   add_generation_prompt=True, tokenize=False)
-    if not text.rstrip().endswith("<think>"):  # older template versions omit it
-        text += "<think>\n"
-    inputs = tok(text, return_tensors="pt", add_special_tokens=False).to("cuda")
+    tok, model = load()
+    inputs = make_inputs(tok, PROMPT)
 
     # Gate 1: hand-rolled greedy loop == model.generate().
     expected = sanity_generate(tok, model, inputs, max_new_tokens=32)
