@@ -924,3 +924,183 @@ the superposition hypothesis worth the Step 4 test.
 **Next after Step 3:** Step 4 — counterfactual α-sweep at fork points (blend vs pure candidates,
 per-layer); Step 5 — middle-layer activation patching with control donors, measured on answer
 correctness / answer-logit difference; then replication across items and seeds, with statistics.
+
+## Exp 16 — GSM8K accuracy, Step 3 complete (2026-10-03, Kaggle T4)
+
+First 30 GSM8K test problems; conditions discrete CoT s=0/1, vanilla, Gumbel s=0/1 (150 runs,
+~4.3 h total). Setup as in the Methodology change above; MAX_THINK 8192.
+
+| Condition | Correct | Wrong | No answer | Budget hits | Cold Stops | Mean think steps | Mean time |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Discrete CoT | 52/60 (87%) | 6 | 2 | 3 | 0 | 2121 | 107 s |
+| Vanilla | 22/30 (73%) | 3 | 5 | 0 | 14 | 2012 | 92 s |
+| Gumbel | 52/60 (87%) | 6 | 2 | 4 | 0 | 2176 | 111 s |
+
+- **Setup validated:** 145/150 runs produce a boxed answer, so this measures reasoning, not finishing.
+- **Greedy Pitfall reproduced:** vanilla hits Cold Stop (repetition loop) in 14/30 runs; Gumbel and
+  discrete sampling never do. 5 of vanilla's 8 failures are no-answer-after-loop (items 8, 19, 21,
+  22, 28), and the other conditions solve 4 of those 5 items. Vanilla also loops-but-recovers in 7
+  correct runs. **Vanilla's deficit is mostly looping, not worse reasoning.**
+- **Gumbel = discrete sampling exactly (52/60 each).** They differ on only 4 items (12: Gumbel 2/2 vs
+  0/2; 20: 0/2 vs 2/2; 21: 0/2 vs 1/2; 23: 2/2 vs 1/2) and cancel out. Items 3 and 7 are wrong under
+  every condition.
+- **Reading:** matches Wu et al.'s direction (noise fixes the vanilla regression), but noise buys no
+  accuracy beyond ordinary sampled CoT. Consistent with Option B (noise helps by adding randomness /
+  breaking loops, like sampling does) — but accuracy cannot settle mechanism; that is Step 4's job.
+  Caveat: 30 items, accuracy near ceiling (87%), so small differences are unresolvable.
+- Results file: `gsm8k_eval.jsonl` (Kaggle notebook output).
+
+**Next:** Step 4 — `neuralese_sweep.py` (α-sweep at the first 5 forks of the vanilla and Gumbel
+seed-0 runs on items 0–9; per-layer snap score: 0 = blend carried linearly, ~1 = snaps to one token).
+
+## Exp 17 — α-sweep at real fork points: does the model carry a blend or snap to one token? (2026-10-03, Kaggle T4)
+
+**Question.** When the model is fed a blend of two candidate tokens, does its internal state carry
+the mixture (superposition-like) or resolve to one candidate (collapse)? This is the core
+mechanistic test from the 2026-09-28 review (replaces the withdrawn lens-vs-mixture comparisons).
+
+**Setup (`neuralese_sweep.py`).**
+- Replays the Exp 16 runs (GSM8K items 0–9, vanilla and Gumbel seed 0) with identical RNG use and
+  the same Cold Stop, so forks lie on the same traces as the accuracy runs.
+- **Fork** = a step where the runner-up candidate holds ≥ 25% of the pre-noise (temperature 0.6,
+  top-10/top-p/min-p filtered) weight. A = top candidate, B = runner-up.
+- At each fork, from the same cached prefix (cache deep-copied per branch), feed
+  `α·emb(A) + (1−α)·emb(B)` for α = 0, 0.1, …, 1. For every layer (embedding, 28 decoder layers,
+  final logits), project the state onto the line from the pure-B state (α=0) to the pure-A state
+  (α=1): `c(α)` = position on the line, `off(α)` = distance off the line relative to the A–B gap.
+- **Snap score** = mean|c(α) − α| / 0.25. 0 = blend carried linearly; ≈0.91 = perfect step at
+  α=0.5 on this 11-point grid (values slightly >1 = overshoot).
+- Built-in check: layer 0 must give c = α exactly and off = 0 — passed at every fork.
+- Also recorded: the top-1 next token at each α (does a 50/50 input produce A's next word, B's,
+  or a new one?).
+
+**Run history.**
+- v1 fork rule (first 5 forks per run): 100 forks, **all wording forks within the first ~90 steps**
+  (opening phrases fill the quota before any arithmetic) — no number forks measured.
+- v2 fork rule (first 5 digit forks + first 5 other forks per run, whole trace): 161 forks
+  (61 digit, 100 other). The 100 other forks reproduced v1 exactly (replay is deterministic).
+  Runtime ~5–10 min.
+
+**Results — mean snap by layer (v2).**
+
+| Fork kind / condition | n | L1 | L7 | L14 | Final hidden | Logits |
+|---|---:|---:|---:|---:|---:|---:|
+| Digit, vanilla | 30 | 0.25 | 0.46 | 0.63 | 0.81 | 0.81 |
+| Digit, Gumbel | 31 | 0.23 | 0.46 | 0.62 | 0.82 | 0.82 |
+| Other, vanilla | 50 | 0.22 | 0.40 | 0.50 | 0.71 | 0.72 |
+| Other, Gumbel | 50 | 0.22 | 0.37 | 0.47 | 0.66 | 0.66 |
+
+**Results — by candidate type (vanilla + Gumbel pooled; processing is identical across them).**
+
+| Group | n | L7 | L14 | L21 | Final (95% bootstrap CI) | 50/50 next word: A / B / new / A=B | Off-line at 50/50 (final) |
+|---|---:|---:|---:|---:|---|---|---:|
+| Number vs number ("2"/"3") | 36 | 0.35 | 0.56 | 0.70 | 0.77 [0.75, 0.79] | 16 / 10 / 2 / 8 | 0.28 |
+| Number vs word ("1"/"Let") | 25 | 0.62 | 0.72 | 0.81 | 0.89 [0.85, 0.93] | 17 / 7 / 1 / 0 | 0.11 |
+| Word vs word | 100 | 0.39 | 0.49 | 0.58 | 0.69 [0.64, 0.72] | 29 / 37 / 14 / 20 | 0.23 |
+
+**Findings.**
+1. **Progressive commitment, not instant collapse and not linear carrying.** Snap rises steadily
+   from 0 at the input through ~0.5 in the middle layers to ~0.7–0.9 at the output. A blend is
+   partly alive mid-network and mostly resolved by the output, within a single step.
+2. **The more the candidates differ in kind, the harder the snap:** number-vs-word 0.89 >
+   number-vs-number 0.77 > word-vs-word 0.69 (number-vs-number and word-vs-word CIs do not overlap).
+   Near-synonyms ("each/every", "issue/problem") stay low (~0.16–0.38).
+3. **At an exact 50/50 input the next token almost always follows one candidate:** 26/28 (93%) for
+   number-vs-number, 24/25 (96%) for number-vs-word, 66/80 (83%) for word-vs-word (excluding A=B
+   cases). Genuinely new continuations are rare.
+4. **Prior bias for numbers:** with an equal input mix, the next token follows A (the candidate the
+   context already favoured) 16:10 for number-vs-number and 17:7 for number-vs-word, but splits
+   ~evenly for words (29:37). An ambiguous number input is read mostly as the expected number.
+5. **No "third thing":** blended states stay near the A–B line (off-line 0.11–0.28 of the A–B gap).
+6. **Noise does not change blend processing** (vanilla ≈ Gumbel curves) — expected, since noise only
+   decides which blend is fed, not how a given blend is processed.
+
+**Interpretation.** Within one step, token blends — especially decision-relevant number blends —
+are largely collapsed to one candidate by the output layer. Together with Exp 16 (Gumbel accuracy
+= sampled CoT; vanilla's deficit is looping), the evidence so far favours **Option B**: noise helps by
+choosing among single paths (exploration, loop-breaking), not by sustaining multiple paths in one
+representation.
+
+**Open door / caveats.**
+- Middle layers are only partly collapsed (snap ~0.35–0.56 at L7–L14 for number-vs-number). Those
+  partly-blended values are written into the KV cache, which later steps attend to — so the losing
+  candidate could still influence later reasoning. This is exactly what Step 5 must test.
+- One step only; 10 GSM8K items, seed 0, one 1.5B model. Snap is a linear-projection measure.
+  Early identical forks (e.g. "Okay"/"Alright") appear in both conditions when the traces coincide.
+- Code change: fork-selection rule in `neuralese_sweep.py` (v1 → v2), approved 2026-10-03.
+
+**Next:** Step 5 — at number forks, feed blend vs pure A vs pure B and continue generation; measure
+whether the later reasoning / final answer under the blend follows A, follows B, or differs from
+both (does the half-collapsed mid-layer information matter downstream?). Design to be approved
+before code is written.
+
+## Exp 18 — Does the losing candidate survive in the KV cache? (Step 5 / Test 1, PRELIMINARY) (2026-10-05, Kaggle T4)
+
+**Question.** Exp 17 showed a 50/50 blend is mostly collapsed to one candidate by the output layer, but
+middle layers are only partly collapsed and those values are written into the KV cache. Does the
+losing candidate's information stay in the cache and influence later tokens?
+
+**Setup (`neuralese_kv_carryover.py`).**
+- Same 161 forks as Exp 17 (same replay: `forks_in_run` from `neuralese_sweep.py` with the per-fork
+  measurement swapped in; the measurement uses no RNG, so the forks are identical).
+- At each fork, four branches from the same cache: pure A, pure B, 50/50 blend of A and B, and a
+  **control** = 50/50 blend of A with an unrelated token C of B's kind (another digit, or a common word
+  such as " the" / " we"; fixed per fork). The control is as "weakened" as the blend but holds no B.
+- **Forced text:** A's own greedy continuation (64 tokens) is fed into all four branches, then B's.
+  Feeding identical text removes the butterfly effect (free-running texts drift apart anyway).
+- **Score** at every later position: the branch's next-token distribution (T = 0.6) placed on the line
+  from pure B to pure A, `c = (p − p_B)·(p_A − p_B) / |p_A − p_B|²` (1 = reads like pure A, 0 = like
+  pure B). Positions where p_A and p_B differ by < 5% total variation are skipped.
+- Built-in check: forcing a text in one pass must equal generating it token by token (passed).
+- Run history: v1 without the control, v2 with it. Blend numbers identical across v1 and v2.
+  ~25 min per run.
+
+**Results — mean c, blend / control** (pos 0 = token right after the fork; then pos 1–8, pos 9–64).
+
+| Fork type | Blend followed | n | Text fed | pos 0 | pos 1–8 | pos 9–64 |
+|---|---|---:|---|---|---|---|
+| Number vs number | A | 16 | A's | 0.99 / 0.91 | 0.86 / 0.89 | 0.71 / 0.70 |
+| Number vs number | A | 16 | B's | 0.99 / 0.91 | **0.32 / 0.82** | **0.46 / 0.87** |
+| Number vs number | B | 10 | A's | 0.01 / 0.87 | 0.41 / 0.68 | 0.43 / 0.56 |
+| Number vs number | B | 10 | B's | 0.01 / 0.87 | 0.08 / 0.66 | 0.25 / 0.83 |
+| Number vs word | A | 17 | A's | 0.99 / 1.00 | 0.92 / 0.95 | 1.01 / 0.98 |
+| Number vs word | A | 17 | B's | 0.99 / 1.00 | 0.79 / 1.01 | 0.88 / 0.95 |
+| Word vs word | A | 29 | A's | 0.88 / 0.93 | 0.82 / 0.87 | 0.82 / 0.88 |
+| Word vs word | A | 29 | B's | 0.88 / 0.93 | **0.34 / 0.79** | **0.40 / 0.82** |
+| Word vs word | B | 37 | B's | 0.02 / 0.91 | 0.12 / 0.89 | 0.15 / 0.79 |
+
+**B-leftover test** (forks where the blend followed A; B's text fed; pos 1–64; per-fork mean of
+control − blend; bootstrap 95% CI over forks; > 0 = B's own information carries forward):
+
+| Fork type | n forks | Mean | 95% CI |
+|---|---:|---:|---|
+| Number vs number | 16 | +0.45 | [+0.28, +0.61] |
+| Number vs word | 17 | +0.07 | [−0.02, +0.19] |
+| Word vs word | 28 | +0.38 | [+0.27, +0.51] |
+
+**Findings.**
+1. **The losing candidate is stored, not erased (number-vs-number, word-vs-word).** When the blend
+   followed A and B's continuation is fed in, the blend reads it like B (c ≈ 0.32), while the A+C
+   control still reads it like A (c ≈ 0.82). So it is B's own information being retrieved from the
+   cache, not merely a weakened A letting the context win.
+2. **Number-vs-word forks: B is erased** (no significant difference) — matches Exp 17's hardest
+   collapse (snap 0.89).
+3. **On the model's own path the leftover is dormant.** With A's text (what the model actually
+   produces after following A), blend ≈ control (0.86 vs 0.89). The stored B only matters if later
+   text turns toward B.
+4. Vanilla and Gumbel forks behave alike (as expected: noise picks the blend, not how it is processed).
+
+**Interpretation.** A weak form of Option A: within one step the blend collapses at the output
+(Exp 17), but the losing candidate stays retrievable in the KV cache and later context can read it
+back. It is *not* evidence that the model reasons along both paths at once — on its own continuation
+the leftover has no measurable effect. Behaviourally the evidence still favours Option B (Exp 16, 17).
+
+**Caveats (to address before treating as final).**
+- Control C is an unrelated token that does not fit the context; a stricter control is a plausible
+  alternative (the 3rd-ranked candidate).
+- Duplicate forks: vanilla and Gumbel traces sometimes share a prefix, so a few forks are counted twice
+  (e.g. item 1 "Okay"/"Alright", item 9 " how"/" El").
+- 10 GSM8K items, one seed, one 1.5B model; projection-based score (occasional values outside [0, 1]).
+
+**Next:** robustness run (3rd-candidate control, de-duplicated forks), then Step 5 / Test 2 — free
+generation from blend vs pure branches: does the stored B ever change the final answer?

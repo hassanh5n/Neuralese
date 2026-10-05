@@ -16,11 +16,12 @@ import urllib.request
 import torch
 
 from neuralese_eval import DATA_URL, SUFFIX
-from neuralese_r1 import MAX_THINK, OUT_DIR, concept_token, load, make_inputs
+from neuralese_r1 import (COLD_STOP_ENTROPY, COLD_STOP_LEN, MAX_THINK, OUT_DIR, concept_token, load,
+                          make_inputs)
 
 N_ITEMS = 10  # GSM8K items 0-9 (same traces as Exp 16, same seeds)
 CONDITIONS = [(None, 0), ("gumbel", 0)]
-FORKS_PER_RUN = 5  # first 5 forks in step order, fixed in advance (no cherry-picking)
+FORKS_PER_KIND = 5  # first 5 digit forks + first 5 other forks per run, in step order (no cherry-picking)
 FORK_MIN_SECOND = 0.25  # fork = runner-up candidate holds >= 25% of pre-noise weight
 ALPHAS = [i / 10 for i in range(11)]
 OUT = f"{OUT_DIR}/step4_alpha_sweep.jsonl"
@@ -59,21 +60,26 @@ def forks_in_run(model, tok, inputs, noise, seed):
     embed = model.get_input_embeddings().weight
     stop = {tok.convert_tokens_to_ids("</think>"), tok.eos_token_id}
     mask, past, feed, rows = inputs["attention_mask"], None, {"input_ids": inputs["input_ids"]}, []
+    counts, low = {"digit": 0, "other": 0}, 0
     for step in range(MAX_THINK):
         out = model(**feed, attention_mask=mask, past_key_values=past, use_cache=True)
         past, logits = out.past_key_values, out.logits[:, -1, :]
-        _, w0, ids0, _ = concept_token(embed, logits, None)  # pre-noise candidates; uses no RNG
+        _, w0, ids0, h = concept_token(embed, logits, None)  # pre-noise candidates; uses no RNG
         if w0[0, 1] >= FORK_MIN_SECOND:
             a_id, b_id = ids0[0, 0].item(), ids0[0, 1].item()
             pair = [tok.decode([a_id]), tok.decode([b_id])]
-            rows.append({"step": step, "A": pair[0], "B": pair[1], "wA": round(w0[0, 0].item(), 3),
-                         "wB": round(w0[0, 1].item(), 3),
-                         "kind": "digit" if any(ch.isdigit() for ch in "".join(pair)) else "other",
-                         **sweep(model, embed, past, mask, a_id, b_id)})
-            rows[-1]["next_top"] = [tok.decode([t]) for t in rows[-1]["next_top"]]
-            if len(rows) == FORKS_PER_RUN:
-                break
-        # ponytail: no Cold Stop here; a vanilla loop could repeat forks, fine at 5 forks per run
+            kind = "digit" if any(ch.isdigit() for ch in "".join(pair)) else "other"
+            if counts[kind] < FORKS_PER_KIND:
+                counts[kind] += 1
+                rows.append({"step": step, "A": pair[0], "B": pair[1], "wA": round(w0[0, 0].item(), 3),
+                             "wB": round(w0[0, 1].item(), 3), "kind": kind,
+                             **sweep(model, embed, past, mask, a_id, b_id)})
+                rows[-1]["next_top"] = [tok.decode([t]) for t in rows[-1]["next_top"]]
+                if min(counts.values()) == FORKS_PER_KIND:
+                    break
+        low = low + 1 if h < COLD_STOP_ENTROPY else 0  # same Cold Stop as the eval runs
+        if low >= COLD_STOP_LEN:
+            break
         blend, w, ids, _ = concept_token(embed, logits, noise)
         if ids[0, w[0].argmax()].item() in stop:
             break
