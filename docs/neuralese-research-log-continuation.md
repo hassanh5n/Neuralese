@@ -1034,7 +1034,7 @@ whether the later reasoning / final answer under the blend follows A, follows B,
 both (does the half-collapsed mid-layer information matter downstream?). Design to be approved
 before code is written.
 
-## Exp 18 — Does the losing candidate survive in the KV cache? (Step 5 / Test 1, PRELIMINARY) (2026-10-05, Kaggle T4)
+## Exp 18 — Does the losing candidate survive in the KV cache? (Step 5 / Test 1) (2026-10-05, Kaggle T4)
 
 **Question.** Exp 17 showed a 50/50 blend is mostly collapsed to one candidate by the output layer, but
 middle layers are only partly collapsed and those values are written into the KV cache. Does the
@@ -1052,8 +1052,10 @@ losing candidate's information stay in the cache and influence later tokens?
   from pure B to pure A, `c = (p − p_B)·(p_A − p_B) / |p_A − p_B|²` (1 = reads like pure A, 0 = like
   pure B). Positions where p_A and p_B differ by < 5% total variation are skipped.
 - Built-in check: forcing a text in one pass must equal generating it token by token (passed).
-- Run history: v1 without the control, v2 with it. Blend numbers identical across v1 and v2.
-  ~25 min per run.
+- Run history: v1 without the control; v2 with the unrelated control; v3 with a stricter control
+  (C = 3rd-ranked pre-noise candidate, a token that fits the context) and duplicate forks removed from
+  the summary (3 forks where vanilla and Gumbel shared a prefix). Blend numbers identical across all
+  runs (deterministic replay). ~25 min per run. Tables below are v2; v3 robustness result follows.
 
 **Results — mean c, blend / control** (pos 0 = token right after the fork; then pos 1–8, pos 9–64).
 
@@ -1078,6 +1080,20 @@ control − blend; bootstrap 95% CI over forks; > 0 = B's own information carrie
 | Number vs word | 17 | +0.07 | [−0.02, +0.19] |
 | Word vs word | 28 | +0.38 | [+0.27, +0.51] |
 
+**Robustness (v3: 3rd-candidate control, de-duplicated forks).**
+
+| Fork type | v2: unrelated control | v3: 3rd-candidate control |
+|---|---|---|
+| Number vs number | +0.45 [+0.28, +0.61] (n=16) | **+0.41 [+0.24, +0.57]** (n=16) |
+| Number vs word | +0.07 [−0.02, +0.19] (n=17) | +0.07 [−0.00, +0.14] (n=17) |
+| Word vs word | +0.38 [+0.27, +0.51] (n=28) | **+0.32 [+0.19, +0.44]** (n=27) |
+
+The effect shrinks only slightly with a context-fitting control, so it is not an artefact of the
+control being an odd token. Notes on the v3 control: the 3rd candidate usually had pre-noise weight
+0.0 (removed by the top-p / min-p filter, especially for digits), so it is "next most likely token",
+not a live competitor; and sometimes C was nearly a copy of B (`’s` vs `'s`, `El`, ` fibers`), which
+makes the control resemble the blend — the test is conservative, so the true effect may be larger.
+
 **Findings.**
 1. **The losing candidate is stored, not erased (number-vs-number, word-vs-word).** When the blend
    followed A and B's continuation is fed in, the blend reads it like B (c ≈ 0.32), while the A+C
@@ -1095,12 +1111,11 @@ control − blend; bootstrap 95% CI over forks; > 0 = B's own information carrie
 back. It is *not* evidence that the model reasons along both paths at once — on its own continuation
 the leftover has no measurable effect. Behaviourally the evidence still favours Option B (Exp 16, 17).
 
-**Caveats (to address before treating as final).**
-- Control C is an unrelated token that does not fit the context; a stricter control is a plausible
-  alternative (the 3rd-ranked candidate).
-- Duplicate forks: vanilla and Gumbel traces sometimes share a prefix, so a few forks are counted twice
-  (e.g. item 1 "Okay"/"Alright", item 9 " how"/" El").
+**Caveats.**
 - 10 GSM8K items, one seed, one 1.5B model; projection-based score (occasional values outside [0, 1]).
+- Forced text is the model's own greedy continuation of pure A or pure B; it measures what the cache
+  *can* do, not what happens in free generation (that is Test 2).
+- Code: `neuralese_kv_carryover.py` (v3 = 3rd-candidate control + de-duplicated summary).
 
-**Next:** robustness run (3rd-candidate control, de-duplicated forks), then Step 5 / Test 2 — free
-generation from blend vs pure branches: does the stored B ever change the final answer?
+**Next:** Step 5 / Test 2 — free generation from pure A, pure B, blend and control at number forks,
+same noise seed for all copies: does the stored B ever change the final answer?
