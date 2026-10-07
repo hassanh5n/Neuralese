@@ -25,10 +25,10 @@ from neuralese_eval import DATA_URL, SUFFIX, boxed
 from neuralese_kv_carryover import LAST, spy_concept_token
 from neuralese_r1 import (COLD_STOP_ENTROPY, COLD_STOP_LEN, MAX_ANSWER, MAX_THINK, OUT_DIR, concept_token,
                           load, make_inputs)
-from neuralese_sweep import CONDITIONS, N_ITEMS, forks_in_run
+from neuralese_sweep import CONDITIONS, ITEMS, TAG, forks_in_run
 
 NOISE, SEED = "gumbel", 0  # same seed for every copy at every fork
-OUT = f"{OUT_DIR}/step5_fork_outcome.jsonl"
+OUT = f"{OUT_DIR}/step5_fork_outcome_{TAG}.jsonl"
 STATE = {"seen": set()}  # current item / tokenizer / prompt length, set in main()
 
 
@@ -123,14 +123,14 @@ def summarize(rows):
 def main():
     assert answer_num(r"so \boxed{\$1,250.00}") == 1250 and answer_num("no box 18") is None
     lines = urllib.request.urlopen(DATA_URL).read().decode().splitlines()
-    items = [json.loads(line) for line in lines[:N_ITEMS]]
+    items = {i: json.loads(lines[i]) for i in ITEMS}
     tok, model = load()
     STATE["tok"] = tok
     neuralese_sweep.sweep = outcome  # forks_in_run calls sweep() by name -> same forks as Exp 17/18
     neuralese_sweep.concept_token = spy_concept_token  # exposes the 3rd candidate, changes nothing
     rows = []
     with open(OUT, "w") as f:
-        for i, item in enumerate(items):
+        for i, item in items.items():
             inputs = make_inputs(tok, item["question"] + SUFFIX)
             STATE.update(item=i, prompt_len=inputs["input_ids"].shape[1],
                          gold=float(item["answer"].split("####")[-1].strip().replace(",", "")))

@@ -29,13 +29,13 @@ import torch
 import neuralese_sweep
 from neuralese_eval import DATA_URL, SUFFIX
 from neuralese_r1 import OUT_DIR, TEMPERATURE, concept_token, load, make_inputs
-from neuralese_sweep import CONDITIONS, N_ITEMS, forks_in_run
+from neuralese_sweep import CONDITIONS, ITEMS, TAG, forks_in_run
 
 N_CONT = 64  # forced continuation length after the fork token
 MIN_TV = 0.05  # skip positions where p_A and p_B differ by < 5% probability mass (total variation)
 CHECK_TOL = 1e-2  # ponytail: batched vs token-by-token fp32 drift is ~1e-4; a misaligned feed is >> 1
 BUCKETS = [(0, 0), (1, 8), (9, N_CONT)]  # position 0 = token right after the fork (Exp 17's next_top)
-OUT = f"{OUT_DIR}/step5_kv_carryover.jsonl"
+OUT = f"{OUT_DIR}/step5_kv_carryover_{TAG}.jsonl"
 LAST = {}  # pre-noise candidates of the current step, recorded by spy_concept_token
 
 
@@ -150,13 +150,13 @@ def summarize(rows):
 
 def main():
     lines = urllib.request.urlopen(DATA_URL).read().decode().splitlines()
-    items = [json.loads(line) for line in lines[:N_ITEMS]]
+    items = {i: json.loads(lines[i]) for i in ITEMS}
     tok, model = load()
     neuralese_sweep.sweep = carryover
     neuralese_sweep.concept_token = spy_concept_token  # forks_in_run calls sweep() by name -> same forks as Exp 17
     rows = []
     with open(OUT, "w") as f:
-        for i, item in enumerate(items):
+        for i, item in items.items():
             inputs = make_inputs(tok, item["question"] + SUFFIX)
             for noise, seed in CONDITIONS:
                 for r in forks_in_run(model, tok, inputs, noise, seed):

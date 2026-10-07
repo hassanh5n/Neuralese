@@ -1119,3 +1119,138 @@ the leftover has no measurable effect. Behaviourally the evidence still favours 
 
 **Next:** Step 5 / Test 2 — free generation from pure A, pure B, blend and control at number forks,
 same noise seed for all copies: does the stored B ever change the final answer?
+
+## Exp 19 — Does the stored losing candidate change the final answer? (Step 5 / Test 2) (2026-10-06, Kaggle T4)
+
+**Question.** Exp 18 showed B's information stays retrievable in the KV cache. In free generation
+(the real setting), does it ever change the final answer?
+
+**Setup (`neuralese_fork_outcome.py`).**
+- Same replay as Exp 17/18; only **number forks** (number-vs-number and number-vs-word), duplicates
+  skipped: 61 forks.
+- From each fork, copies continue with **Gumbel Soft Thinking** (τ=0.5, same Cold Stop/budget as
+  `neuralese_r1.run`) to the boxed answer: pure A, pure B, blend (A+B), control (A+C, C = 3rd-ranked
+  candidate as in Exp 18 v3). **All copies use the same noise seed** (separate RNG stream, so the replay
+  is unaffected) — differences come only from what was fed at the fork.
+- Pure A and B run first; blend and control only when A and B reach different answers (otherwise the
+  fork cannot separate "follows A" from "follows B").
+- Shortcut: the Cold Stop counter restarts at the fork. Vanilla-trace forks are also continued with
+  Gumbel. Runtime several hours (forks on items 7–8 took 10–25 min each).
+
+**Results.**
+- **47/61 forks: pure A and pure B reach the same final answer** — most number forks are
+  answer-irrelevant (the model recovers whichever digit it took). Informative: 14 (num-num 8/36,
+  num-word 6/25), 12 of them on items 7 and 8, where answers are unstable (item 7: 120/140/180 vs gold 160).
+
+| On the 14 informative forks | Ends on A's answer | Ends on B's answer | Other |
+|---|---:|---:|---:|
+| Blend (A+B) | 2 | 6 | 6 |
+| Control (A+C) | 5 | 4 | 5 |
+
+- Paired: only blend → B's answer 4 forks, only control → B's answer 2; one-sided sign test p = 0.34.
+- Accuracy: pure A 39/61, pure B 42/61; blend 6/14, control 5/14.
+
+**Findings.**
+1. **No detectable effect of the stored B on final answers.** Direction matches Exp 18 (blend lands on
+   B's answer slightly more often than the control) but far from significant.
+2. **Final answers at informative forks are chaotic:** the control — half A, no B — ends on A's answer
+   only 5/14 times, so any small nudge at the fork reshuffles the outcome. Single-sample answers cannot
+   separate a small B-specific effect from this butterfly effect.
+
+**Interpretation.** Combined with Exp 18: the losing candidate is *stored* in the KV cache and can be
+read back by B-consistent text, but in free generation its effect on the final answer is not
+distinguishable from chance. Behaviourally the evidence continues to favour **Option B** (noise helps
+by choosing among single paths, not by sustaining several).
+
+**Caveats / future work.** n = 14 informative forks, one seed, mostly two items — cannot rule out a
+small effect. A proper test would repeat each informative fork over several seeds and compare
+P(answer = B's | blend) vs P(answer = B's | control); estimated 5–10 GPU hours (multiple Kaggle
+sessions). Deferred.
+
+**Next:** middle-layer activation patching with control donors — which layers hold B's stored
+information (mechanism behind Exp 18). Design to be approved before code.
+
+## Exp 20 — Which layers' KV cache holds the losing candidate? (Step 5 mechanism) (2026-10-06, Kaggle T4)
+
+**Question.** Exp 18 showed B's information stays in the KV cache and can be read back. Later tokens
+see the fork position only through its stored keys/values, one set per layer (28). Which layers hold B?
+
+**Setup (`neuralese_kv_patch.py`).**
+- Same replay and forks as Exp 17/18. Only forks where the blend followed A (as in Exp 18's B-leftover
+  test); B's own greedy 64-token continuation is forced into every branch.
+- Blend (A+B) and control (A+C, C = 3rd-ranked candidate, as Exp 18 v3) caches built from the same prefix.
+  Only the fork position's keys/values are swapped, per single layer (0–27) and per block of 4 layers:
+  - **remove:** blend cache, fork K/V at layer(s) L taken from the control → does the blend stop reading
+    B's text like B? (is L needed?)
+  - **insert:** control cache, fork K/V at L taken from the blend → does the control start reading it like
+    B? (is L enough?)
+- Score: c on the B → A line at positions 1–64 (as Exp 18). Fraction of the gap closed:
+  remove = (c_patch − c_blend) / (c_ctrl − c_blend), insert = (c_ctrl − c_patch) / (c_ctrl − c_blend);
+  ratio of sums over forks, bootstrap 95% CI over forks; duplicate forks counted once.
+- Built-in check: patching all 28 layers must reproduce the donor exactly (passed).
+
+**Results.** Gaps reproduce Exp 18 v3 exactly (num-num +0.41, n=16; word-word +0.32, n=27).
+
+| Layers | Num-num remove | Num-num insert | Word-word remove | Word-word insert |
+|---|---|---|---|---|
+| 0–3 | **+0.50** [0.26, 0.75] | **+0.40** [0.19, 0.64] | **+0.71** [0.47, 0.99] | **+0.69** [0.42, 0.95] |
+| 4–7 | **+0.31** [0.17, 0.50] | **+0.27** [0.12, 0.47] | +0.08 [0.00, 0.16] | +0.08 [−0.01, 0.15] |
+| 8–11 | +0.07 [0.01, 0.16] | +0.14 [0.02, 0.26] | +0.03 [−0.08, 0.10] | +0.05 [−0.07, 0.17] |
+| 12–15 | +0.07 [−0.05, 0.15] | +0.20 [−0.06, 0.44] | +0.03 [−0.02, 0.07] | +0.02 [−0.04, 0.08] |
+| 16–19 | +0.03 [−0.05, 0.11] | +0.07 [0.01, 0.13] | +0.04 [−0.07, 0.15] | +0.06 [−0.04, 0.15] |
+| 20–23 | +0.02 [−0.00, 0.06] | +0.04 [0.01, 0.08] | +0.03 [−0.01, 0.10] | +0.06 [0.01, 0.12] |
+| 24–27 | +0.01 [−0.01, 0.04] | +0.02 [−0.00, 0.04] | +0.06 [−0.02, 0.16] | +0.06 [−0.02, 0.16] |
+
+- Blocks add up to ≈ 100% of the gap (num-num remove 1.01 / insert 1.14; word-word 0.98 / 1.02), so
+  layer effects are roughly additive.
+- Notable single layers: word-word L0 (+0.41 / +0.29), L1 (+0.15 / +0.15); num-num L0–L2 (remove
+  +0.17–0.23, insert ≤ 0.04 each: needed but not enough alone) and **L7 (+0.19 / +0.20)**.
+- Number vs word: gap only +0.07 (as Exp 18), so the fractions are noise (CIs span ±1–3). Nothing to locate.
+
+**Findings.**
+1. **B is stored almost entirely in the early layers' KV.** Word-word: layers 0–3 (~70%, mostly layer 0).
+   Number-number: layers 0–3 (~45%) and 4–7 (~30%, layer 7 stands out).
+2. **Middle and late layers (12–27) hold close to nothing of B** for both fork types.
+3. Numbers keep B a few layers deeper than words (layers 4–7), but it is still gone by the middle layers.
+
+**Interpretation.** The stored B is mostly a leftover of the *input mix itself*: early layers have barely
+processed the blend (Exp 17 snap ≈ 0.25 at layer 1), so the embedding of B is still present in their
+keys/values. By the middle layers the model has committed to A and stores nothing about B. So the model
+does not keep B alive as a second, processed hypothesis — Exp 18's "weak Option A" is an echo of the
+input, not parallel reasoning. This strengthens the case for **Option B**.
+
+**Caveats.**
+- The layer 12–15 / 13 insert values (+0.20 / +0.15) come from 2–3 number forks (item 1 steps 294/461,
+  item 3 step 299) and their CIs include 0 — not reliable.
+- 35 layer sets tested, so a few single-layer CIs exclude 0 by chance; the blocks are the main result.
+- 10 items, seed 0, CIs over forks (forks from one problem are not independent) — addressed in Part A.
+- Keys vs values not separated (optional; would not change the conclusion).
+
+## Plan — Part A: replication on fresh items + problem-level statistics (2026-10-06)
+
+**What.** Rerun Exp 17 (`neuralese_sweep.py`), Exp 18 v3 (`neuralese_kv_carryover.py`) and Exp 20
+(`neuralese_kv_patch.py`) unchanged on **GSM8K items 10–49** (40 problems never looked at), same settings,
+same fork rule, vanilla + Gumbel seed 0. `neuralese_stats.py` then computes the headline numbers with
+95% CIs that **resample problems, not forks** (forks within a problem are not independent), for
+items 10–49 alone and for items 0–49 pooled. Duplicate forks counted once everywhere.
+
+Code changes: item range is one setting in `neuralese_sweep.py` (`ITEMS = range(10, 50)`, used by all
+fork scripts); output files carry the item range in their name (`..._items10-49.jsonl`).
+
+**Predictions, written before running (checked on items 10–49; printed as met / NOT met by
+`neuralese_stats.py`).** Thresholds were set from the items 0–9 values.
+- **P1 (Exp 17):** number-vs-number final-layer snap ≥ 0.6. (items 0–9: 0.77)
+- **P2 (Exp 17):** at a 50/50 input, the next token is pure A's or pure B's in ≥ 85% of number-vs-number
+  forks (excluding forks where pure A and B predict the same token). (items 0–9: 93%)
+- **P3 (Exp 18):** with B's text, control − blend > 0 with CI lower bound > 0, for num-num and word-word.
+  (items 0–9: +0.41, +0.32)
+- **P4 (Exp 18):** with A's text, |control − blend| < 0.1 for num-num and word-word (B dormant on the
+  model's own path).
+- **P5 (Exp 20):** layers 0–7 (blocks 0–3 + 4–7) close ≥ 50% of the gap, remove and insert, num-num and
+  word-word. (items 0–9: 0.67–0.81)
+- **P6 (Exp 20):** layers 0–7 minus layers 12–27 > 0 with CI lower bound > 0, remove and insert, num-num and
+  word-word.
+
+If a prediction fails on the fresh items, the corresponding claim is reported as not replicated.
+
+**After Part A:** decide on Part B (Exp 19 with several seeds per informative fork, ~12–20 GPU h).

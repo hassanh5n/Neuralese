@@ -19,12 +19,13 @@ from neuralese_eval import DATA_URL, SUFFIX
 from neuralese_r1 import (COLD_STOP_ENTROPY, COLD_STOP_LEN, MAX_THINK, OUT_DIR, concept_token, load,
                           make_inputs)
 
-N_ITEMS = 10  # GSM8K items 0-9 (same traces as Exp 16, same seeds)
+ITEMS = range(10, 50)  # GSM8K test items. Exp 17-20 used range(0, 10); Part A replication: range(10, 50)
+TAG = f"items{ITEMS.start}-{ITEMS.stop - 1}"  # in output file names, so other item ranges don't overwrite
 CONDITIONS = [(None, 0), ("gumbel", 0)]
 FORKS_PER_KIND = 5  # first 5 digit forks + first 5 other forks per run, in step order (no cherry-picking)
 FORK_MIN_SECOND = 0.25  # fork = runner-up candidate holds >= 25% of pre-noise weight
 ALPHAS = [i / 10 for i in range(11)]
-OUT = f"{OUT_DIR}/step4_alpha_sweep.jsonl"
+OUT = f"{OUT_DIR}/step4_alpha_sweep_{TAG}.jsonl"
 
 
 @torch.no_grad()
@@ -101,11 +102,11 @@ def summarize(rows):
 
 def main():
     lines = urllib.request.urlopen(DATA_URL).read().decode().splitlines()
-    items = [json.loads(line) for line in lines[:N_ITEMS]]
+    items = {i: json.loads(lines[i]) for i in ITEMS}
     tok, model = load()
     rows = []
     with open(OUT, "w") as f:
-        for i, item in enumerate(items):
+        for i, item in items.items():
             inputs = make_inputs(tok, item["question"] + SUFFIX)
             for noise, seed in CONDITIONS:
                 for r in forks_in_run(model, tok, inputs, noise, seed):
