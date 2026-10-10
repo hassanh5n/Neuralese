@@ -1254,3 +1254,123 @@ fork scripts); output files carry the item range in their name (`..._items10-49.
 If a prediction fails on the fresh items, the corresponding claim is reported as not replicated.
 
 **After Part A:** decide on Part B (Exp 19 with several seeds per informative fork, ~12–20 GPU h).
+
+## Exp 21 — Part A: replication of Exp 17 / 18 / 20 on fresh items (2026-10-07, Kaggle T4)
+
+**Setup.** Same three scripts, unchanged, on GSM8K items 10–49 (40 problems not seen before); vanilla +
+Gumbel seed 0. 694 forks found, 24 duplicates (vanilla/Gumbel shared prefix) → 670 unique forks
+(4× the pilot). `neuralese_stats.py`: 95% CIs resample **problems** (forks within a problem are not
+independent). Items 0–9 were not attached, so no pooled section; items 10–49 alone are the replication
+test. All built-in checks passed.
+
+**Results (items 10–49; items 0–9 in brackets).**
+
+| Measure | Num-num | Num-word | Word-word |
+|---|---|---|---|
+| Forks (Exp 17) / problems | 238 / 40 | 56 / 24 | 376 / 40 |
+| Final-layer snap (Exp 17) | 0.77 [0.75, 0.78] (0.77) | 0.89 [0.87, 0.90] (0.89) | 0.70 [0.68, 0.72] (0.69) |
+| 50/50 input → next token is A's or B's | 95% [91, 98] (93%) | 98% [95, 100] (96%) | 88% [85, 91] (83%) |
+| Followed-A forks (Exp 18/20) | 96 | 34 | 139 |
+| Control − blend, B's text (Exp 18) | +0.44 [0.35, 0.53] (+0.41) | **+0.11 [0.03, 0.19]** (+0.07, n.s.) | +0.33 [0.27, 0.40] (+0.32) |
+| Control − blend, A's text | −0.01 [−0.06, 0.04] | +0.06 [−0.00, 0.19] | +0.02 [−0.02, 0.07] |
+| Layers 0–7 share of gap, remove / insert (Exp 20) | 0.77 / 0.71 | (gap too small) | 0.77 / 0.91 |
+| Layers 12–27 share, remove / insert | 0.12 / 0.26 | (gap too small) | 0.08 / 0.14 |
+| Layers 0–7 minus 12–27, remove / insert | +0.65 [0.50, 0.79] / +0.45 [0.31, 0.60] | — | +0.69 [0.53, 0.85] / +0.77 [0.60, 0.93] |
+
+Exp 20 blocks (fork-level CIs), num-num remove / insert: L0–3 0.58 / 0.55, L4–7 0.19 / 0.16, L8–11
+0.06 / 0.09, **L12–15 0.12 / 0.17**, L16–27 ≤ 0.04 each. Word-word: L0–3 0.66 / 0.75, L4–7 0.10 / 0.16,
+the rest ≤ 0.07. Notable single layers (num-num): L0 0.38 / 0.16, L1–L2 ≈ 0.20 / 0.06, **L7 0.13 / 0.12,
+L13 0.08 [0.05, 0.11] / 0.13 [0.08, 0.18]**.
+
+**Predictions (written before running): P1–P6 all met.**
+
+**Findings.**
+1. **All main claims replicate on fresh problems**, with nearly identical values: blends collapse
+   progressively to one candidate (Exp 17); the losing candidate is stored in the KV cache and readable
+   by B-consistent text, but dormant on the model's own path (Exp 18); it is stored mostly in layers 0–7
+   (Exp 20).
+2. **Correction to Exp 18 (num-word):** B is not fully erased; a small trace remains (+0.11, CI above 0).
+   Read as "mostly erased".
+3. **Correction to Exp 20 (layer 13):** for number forks, layer 13 is a real, consistent contributor
+   (~10–15% of the gap), not a 2–3-fork artefact. Together with layer 7, numbers keep a small *processed*
+   trace of B in middle layers; words do not.
+4. Problem-level CIs are only slightly wider than fork-level ones (e.g. num-num B-text [0.35, 0.53] vs
+   [0.36, 0.51]), so fork dependence did not inflate earlier conclusions.
+
+**Interpretation.** Unchanged and now replicated: B is stored weakly — mostly as an echo of the input mix
+in the early layers, plus a small processed trace (layers 7 and 13) for numbers — and stays dormant unless
+later text turns toward it. No evidence that the model reasons along both candidates. Behaviourally:
+**Option B**.
+
+**Caveats.** One model (1.5B), one seed per trace, GSM8K only; projection-based scores; per-layer Exp 20
+CIs are fork-level (block sums in the stats script are problem-level).
+
+**Next:** decide on Part B (Exp 19 with several seeds per informative fork).
+
+## Decisions — 2026-10-07
+
+- **Part B (Exp 19 with several seeds) skipped.** ~12–20 GPU h; Exp 20/21 show B is mostly an input echo
+  and dormant, so a behavioural effect is expected to be too small to resolve. Exp 19 stays reported as
+  "no detectable effect (n = 14 informative forks, one seed)".
+- **Two-entries-at-one-position cache (A and B stored separately) not pursued.** Changes the method (no
+  longer Soft Thinking), the model was never trained on it, needs custom attention masks — high risk, low
+  value for this research question. Listed as future work.
+
+## Plan — Exp 22: what blends does noise actually feed? (predictions written before running)
+
+**Why.** Exp 17–21 fed exact 50/50 blends, the most "superposed" case. We never measured what blends
+Gumbel (τ = 0.5) or Dirichlet (γ = 1.0) actually feed in real runs. If they are mostly near one-hot, noisy
+Soft Thinking is ordinary sampling in practice — which would explain Exp 16 (Gumbel = discrete CoT, 52/60).
+
+**Setup (`neuralese_mixtures.py`).** Replay ordinary runs (same RNG use as `run`, so same traces as
+Exp 16/17) for vanilla, Gumbel and Dirichlet, seed 0, GSM8K items 10–29. At every think step record the
+pre-noise weights and the fed (post-noise) weights. Fork = pre-noise runner-up ≥ 25% (Exp 17 rule).
+Measures: share of steps / forks where the fed top weight ≥ 0.9 (problem-level bootstrap CI); median fed
+top and runner-up weight at forks; how often noise changes the winner.
+Checks: vanilla fed = pre-noise at every step (run stops otherwise); Gumbel's winner is mathematically a
+sample from the pre-noise weights (Gumbel-max trick), so its flip rate at forks must match
+1 − mean pre-noise top weight (|diff| < 0.1).
+
+**Predictions.**
+- **P1:** Gumbel feeds an almost-one-token blend (fed top ≥ 0.9) at ≥ 70% of forks.
+- **P2:** Dirichlet, same: ≥ 70% of forks.
+- **P3:** Gumbel fed top ≥ 0.9 at ≥ 90% of all think steps.
+
+If P1 holds: noisy Soft Thinking ≈ sampling in practice; the 50/50 blends of Exp 17–21 are a rare,
+upper-bound case, and real runs carry even less of B. If P1 fails: real runs do feed genuine blends, and
+Exp 17–21 describe how they are processed (collapse, early-layer echo, dormant).
+
+## Amendment to Exp 22 predictions — 2026-10-10 (written before running; no Exp 22 data seen)
+
+`neuralese_exp22_closed_form.py`: under Gumbel (τ = 0.5) at a two-candidate fork the fed weight ratio is
+(w1/w2)²·e^{2(g1−g2)}, so P(fed top ≥ 0.9) = 1 − σ(ln 3 − d) + σ(−ln 3 − d) with d = ln(w1/w2): 0.50 at a 50/50
+fork, 0.60 at 75/25; ≈0.39–0.43 for three-candidate forks; Dirichlet (γ = 1) ≈0.30–0.56. Median fed top at forks
+≈0.84–0.94 (200k simulated draws per case agree with the closed form).
+**P1 and P2 (≥ 70% of forks) are therefore expected to fail by arithmetic.** They stay as written and will be
+reported as written. Added predictions:
+- **A1:** Gumbel fed top ≥ 0.9 at 35–65% of forks.
+- **A2:** Dirichlet fed top ≥ 0.9 at 25–60% of forks.
+- **A3:** Gumbel flip rate at forks within 0.05 of 1 − mean pre-noise top weight (Gumbel-max).
+P3 unchanged (depends on the fork rate; no closed-form prediction).
+Interpretation fixed in advance: if A1 holds, real runs feed genuine but lopsided blends at forks, so the exact
+50/50 blends of Exp 17–21 are the case most favourable to the runner-up and real carry-over is at most what
+Exp 18/21 measured.
+
+## Plan — Exp 23: coupled residual ablation (predictions written before running)
+
+**Why.** By Gumbel-max, Gumbel Soft Thinking = ordinary sampling + a residual on the other candidates. The only
+answer-level causal test so far is Exp 19 (14 informative forks, p = 0.34), and Exp 16's sampling arm ran without
+Cold Stop. This tests the real residual, on real runs, against matched sampling.
+
+**Setup (`neuralese_residual_ablation.py`).** GSM8K items 50–149 (never used), seed 0. Three arms in lockstep
+sharing Gumbel noise keyed by (seed, step, token id): **soft** = the normal blend; **hard** = one-hot of the
+blend's top token (exactly ordinary sampling); **rand** = top token at its blend weight, residual moved onto a
+random vocabulary token (disturbance control). Cold Stop on in all arms (pre-noise entropy). Gate: two hard arms
+must agree exactly for 64 steps.
+**Measures.** Primary: per-step KL(arm ‖ hard) of next-token distributions (T = 0.6) while token histories agree,
+and the step of the first token flip. Secondary: exact McNemar on correctness (soft vs hard, rand vs hard).
+
+**Predictions (Option B for the residual):**
+- **E1:** per-item mean KL(soft ‖ hard) before the first flip is smaller than KL(rand ‖ hard) on most items.
+- **E2:** soft vs hard McNemar p > 0.05 and accuracy difference ≤ 5 points.
+If E2 fails with soft > hard, the residual helps answers — reported as evidence against Option B for the residual.
