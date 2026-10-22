@@ -15,6 +15,8 @@ import random
 
 ROOT = "/kaggle" if os.path.isdir("/kaggle") else "."
 N_BOOT = 2000
+ALPHAS = [i / 10 for i in range(11)]  # as in neuralese_sweep.py
+STEP_SNAP = sum(abs((a > 0.5) - a) for a in ALPHAS) / len(ALPHAS)  # mean|c - alpha| of a perfect step = 2.5/11
 EARLY, LATE = ["L0-3", "L4-7"], ["L12-15", "L16-19", "L20-23", "L24-27"]
 
 
@@ -27,6 +29,11 @@ def load(prefix):
                 rows.append(r)
     print(f"{prefix}: {len(rows)} unique forks from {len(glob.glob(f'{ROOT}/**/{prefix}*.jsonl', recursive=True))} file(s)")
     return rows
+
+
+def snap(r, layer=-2):
+    """Snap from the saved c(alpha), so old (/0.25) and new files give the same scale: 1 = perfect step."""
+    return sum(abs(c - a) for c, a in zip(r["c"][layer], ALPHAS)) / len(ALPHAS) / STEP_SNAP
 
 
 def mean(v):
@@ -73,7 +80,7 @@ def report(label, sweep, carry, patch):
         c = [r for r in c if r["lB"] == r["lB"]]
         p = [r for r in patch if group(r) == g and "remove" in r]
         res[g] = {
-            "snap": ci(s, lambda rs: mean([r["snap"][-2] for r in rs])),
+            "snap": ci(s, lambda rs: mean([snap(r) for r in rs])),
             # 50/50 input: next token == pure A's or pure B's (next_top[10] / next_top[0]); skip forks where those agree
             "follow": ci(s, lambda rs: mean([r["next_top"][5] in (r["next_top"][0], r["next_top"][10])
                                              for r in rs if r["next_top"][0] != r["next_top"][10]])),
@@ -96,7 +103,7 @@ def report(label, sweep, carry, patch):
 def check(res):
     """Predictions from the log (written before the run), on items 10-49."""
     nn, ww = res["num-num"], res["word-word"]
-    preds = [("P1 num-num final snap >= 0.6", nn["snap"][0] >= 0.6),
+    preds = [("P1 num-num final snap >= 0.66", nn["snap"][0] >= 0.66),  # registered as 0.6 on the old /0.25 scale (x 1.1)
              ("P2 num-num 50/50 follows A or B >= 85%", nn["follow"][0] >= 0.85),
              ("P3 B's text: control - blend CI above 0 (num-num, word-word)", nn["lB"][1] > 0 and ww["lB"][1] > 0),
              ("P4 A's text: |control - blend| < 0.1 (num-num, word-word)", abs(nn["lA"][0]) < 0.1 and abs(ww["lA"][0]) < 0.1),
@@ -112,6 +119,8 @@ def check(res):
 def main():
     assert ci([{"item": 0, "x": 1.0}, {"item": 1, "x": 3.0}], lambda rs: mean([r["x"] for r in rs]))[0] == 2.0
     data = [load(p) for p in ("step4_alpha_sweep", "step5_kv_carryover", "step5_kv_patch")]
+    assert all(any(r["item"] >= 10 for r in d) for d in data), \
+        f"no items 10-49 rows for one of the three runs under {ROOT}: attach the Exp 21 output jsonl files"
     check(report("items 10-49 (replication)", *[[r for r in d if r["item"] >= 10] for d in data]))
     if any(r["item"] < 10 for d in data for r in d):
         report("items 0-49 pooled", *data)

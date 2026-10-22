@@ -5,7 +5,9 @@ alpha = 0, 0.1, ..., 1 from the same cached prefix, and project every layer's hi
 (plus final logits) onto the line from the pure-B state (alpha=0) to the pure-A state (alpha=1):
   c(alpha)   = where on that line the blended state sits (0 = like B, 1 = like A)
   off(alpha) = distance off the line, relative to the A-B gap (a "third thing")
-  snap       = mean|c - alpha| / 0.25  ->  0 = carries the blend linearly, 1 = step function
+  snap       = mean|c - alpha| / (same for a perfect step at alpha=0.5)  ->  0 = carries the blend linearly,
+               1 = perfect step. (Exp 17-21 in the log divided by 0.25 instead, so a perfect step scored 10/11 = 0.91;
+               logged values x 1.1 = this scale.)
 
 Colab or Kaggle: load the code as for neuralese_eval.py, then  %run neuralese_sweep.py
 """
@@ -19,12 +21,13 @@ from neuralese_eval import DATA_URL, SUFFIX
 from neuralese_r1 import (COLD_STOP_ENTROPY, COLD_STOP_LEN, MAX_THINK, OUT_DIR, concept_token, load,
                           make_inputs)
 
-ITEMS = range(10, 50)  # GSM8K test items. Exp 17-20 used range(0, 10); Part A replication: range(10, 50)
+ITEMS = range(0, 10)  # GSM8K test items. Exp 17-20 used range(0, 10); Part A replication: range(10, 50)
 TAG = f"items{ITEMS.start}-{ITEMS.stop - 1}"  # in output file names, so other item ranges don't overwrite
 CONDITIONS = [(None, 0), ("gumbel", 0)]
 FORKS_PER_KIND = 5  # first 5 digit forks + first 5 other forks per run, in step order (no cherry-picking)
 FORK_MIN_SECOND = 0.25  # fork = runner-up candidate holds >= 25% of pre-noise weight
 ALPHAS = [i / 10 for i in range(11)]
+STEP_SNAP = sum(abs((a > 0.5) - a) for a in ALPHAS) / len(ALPHAS)  # mean|c - alpha| of a perfect step = 2.5/11
 OUT = f"{OUT_DIR}/step4_alpha_sweep_{TAG}.jsonl"
 
 
@@ -50,7 +53,7 @@ def sweep(model, embed, past, mask, a_id, b_id):
         off.append([((s[layer] - h0 - p * d).norm() / dd.sqrt()).item() for s, p in zip(states, proj)])
     # Layer 0 is the input blend itself: must sit exactly at c = alpha, on the line.
     assert all(abs(ci - a) < 1e-3 for ci, a in zip(c[0], ALPHAS)) and max(off[0]) < 1e-3, "sweep misaligned"
-    snap = [sum(abs(ci - a) for ci, a in zip(cl, ALPHAS)) / len(ALPHAS) / 0.25 for cl in c]
+    snap = [sum(abs(ci - a) for ci, a in zip(cl, ALPHAS)) / len(ALPHAS) / STEP_SNAP for cl in c]
     return {"c": c, "off": off, "snap": snap, "next_top": next_top}
 
 

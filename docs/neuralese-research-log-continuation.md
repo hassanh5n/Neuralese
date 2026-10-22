@@ -1374,3 +1374,89 @@ and the step of the first token flip. Secondary: exact McNemar on correctness (s
 - **E1:** per-item mean KL(soft ‖ hard) before the first flip is smaller than KL(rand ‖ hard) on most items.
 - **E2:** soft vs hard McNemar p > 0.05 and accuracy difference ≤ 5 points.
 If E2 fails with soft > hard, the residual helps answers — reported as evidence against Option B for the residual.
+
+## Exp 22 — Results: what blends does noise actually feed? (2026-10-11, Kaggle T4)
+
+GSM8K items 10–29, seed 0. Forks (pre-noise runner-up ≥ 25%): vanilla 9.2% of think steps, Gumbel 13.0%,
+Dirichlet 13.3%. 95% CIs resample problems.
+
+| | Fed top ≥ 0.9, all steps | Fed top ≥ 0.9, forks | Median fed top / runner-up at forks | Winner flipped at forks |
+|---|---|---|---|---|
+| Vanilla | 0.78 [0.75, 0.81] | 0.00 | 0.56 / 0.33 | 0.00 |
+| Gumbel | 0.85 [0.84, 0.87] | 0.47 [0.46, 0.48] | 0.88 / 0.10 | 0.45 (sampling: 0.45) |
+| Dirichlet | 0.83 [0.82, 0.85] | 0.37 [0.36, 0.39] | 0.83 / 0.16 | 0.42 (sampling: 0.45) |
+
+Predictions: P1, P2 not met (expected by the 2026-10-10 amendment); **P3 not met** (0.85 < 0.90);
+**A1 met** (0.47 in 35–65%), **A2 met** (0.37 in 25–60%), **A3 met** (Gumbel flip 0.45 vs 0.45: Gumbel-max holds in code).
+Reading: noisy Soft Thinking feeds genuine but lopsided blends at about half of the forks (median 0.88 / 0.10),
+and some residual at ~15% of all steps. Exact 50/50 blends (Exp 17–21) are the extreme, most-favourable case.
+
+## Exp 23 — Results: coupled residual ablation (2026-10-11, Kaggle T4)
+
+GSM8K items 50–149, seed 0; determinism gate passed. All 100 items flip in both comparisons.
+
+| Arm | Correct | Mean / median think steps |
+|---|---|---|
+| hard (= sampling) | 86/100 | 1532 / 1078 |
+| soft (= Gumbel Soft Thinking) | 88/100 | 1806 / 1118 |
+| rand (residual on a random token) | 82/100 | 2215 / 1578 |
+
+- soft vs hard: McNemar soft-only 6 (items 85, 86, 87, 98, 124, 125), hard-only 4 (75, 89, 115, 145), p = 0.754;
+  same final answer 84/100; mean per-item KL before first flip 0.545; median first flip step 36.
+- rand vs hard: rand-only 3, hard-only 7, p = 0.344; same final answer 84/100; KL 0.009; median first flip 67.
+- Flip order (paired): soft diverges from hard before rand does on 59 items, after on 24, same step 17;
+  sign test p = 0.0002.
+
+Predictions: **E1 NOT met — opposite direction** (soft drifts less than rand on only 14/100 items). **E2 met**
+(p = 0.754, accuracy difference 2 points).
+Reading (provisional, two checks pending): the real residual moves the model's next-token predictions far more
+than an equal-mass random residual and makes the trajectory diverge sooner (consistent with Exp 18: the
+runner-up is read, not ignored), yet it produces no detectable change in accuracy (n = 100, 10 discordant pairs;
+cannot exclude effects of a few points).
+**Pending before this is written up:** (1) per-item mean KL is confounded by flip timing (soft flips earlier, so
+it averages over fewer, early steps) — recompute KL over matched steps (before min(first flip soft, first flip
+rand)) from the jsonl; the flip-order result above is not affected by this. (2) random vocabulary rows may be
+undertrained / small-norm, which would make `rand` a weak control — compare embedding norms of random ids vs
+generated tokens.
+
+## Exp 23 — Pending checks resolved (2026-10-12)
+
+**Rerun confirmed.** The jsonl downloaded from Kaggle (`exp23_residual_ablation_items50-149.jsonl`, 100 rows)
+reproduces every number above: accuracy 88 / 86 / 82; soft vs hard McNemar 6 vs 4, p = 0.754; flip order 59 / 24 / 17,
+p = 0.0002; logged per-item KL soft 0.545, rand 0.009.
+
+**Check 1 — KL over matched steps.** The logged KL averages each arm over its own steps up to and including its
+first flip, so soft (earlier flip) and rand are averaged over different stretches, and soft's mean is dominated by
+the large KL at its flip step. Recomputed from the jsonl over the same steps for both arms: steps
+0 … min(first flip soft, first flip rand) − 1 (median 31 steps per item; no item has a window of 0).
+
+| | Soft | Rand |
+|---|---|---|
+| Mean per-item KL, matched steps | 0.0077 | 0.0014 |
+| Median per-item KL, matched steps | 0.0028 | 0.0007 |
+
+Soft > rand on **94/100 items** (sign test p ≈ 2 × 10⁻²¹). The ratio is ≈ 5×, not the ≈ 60× of the logged values;
+**report the matched numbers**. The direction and the E1 verdict (NOT met, opposite direction) are unchanged.
+
+**Check 2 — embedding norms (rand control strength).** Notebook output (not saved in the jsonl):
+random vocabulary rows median norm 1.195 (10th percentile 0.909); tokens generated while reasoning median norm 1.251.
+Random rows are ≈ 5% smaller than real reasoning tokens, so `rand` puts a comparable amount of signal into the
+residual. `rand` is a fair disturbance control; no norm caveat needed. (The tokenizer warning "24029 > 16384" in
+that cell comes from tokenizing the reasoning text for the norm lookup only; no forward pass, so harmless.)
+
+**Final reading (replaces "provisional").** The model reads the real residual: on matched steps it moves next-token
+predictions ≈ 5× more than an equal-mass random residual (94/100 items) and makes the trajectory diverge from
+sampling sooner (59 vs 24). This does not translate into a detectable accuracy change (88 vs 86, p = 0.754;
+n = 100, 10 discordant pairs, cannot exclude effects of a few points). Consistent with Exp 18/21: the runner-up is
+read, but on the model's own path it changes the route, not the answer. Behaviourally: **Option B**.
+
+## Decision — 2026-10-17: Exp 19 dropped from the paper
+
+The recovered Exp 19 output (`results/exp19/step5_fork_outcome_items0-9.jsonl`) is an incomplete run: 52 of the 61 forks
+(item 9 missing, item 8 has only its vanilla forks). Recomputed on these 52 forks: 11 informative, blend → B's answer
+only 2 vs control only 2, one-sided sign test p = 0.69 (the log above reports 14 informative, p = 0.34, which cannot be
+regenerated from saved data). Both are null. Exp 19 is dropped from the paper: Exp 23 (100 items, soft vs hard
+McNemar p = 0.754) answers the same question with more power and fully saved outputs.
+
+Raw outputs checked the same day: Exp 16 (`results/exp16/gsm8k_eval.jsonl`) matches the table above (mean time per run
+is ~3 s lower than logged; not used in the paper); Exp 22 (`results/exp22/`) and Exp 21 (`results/exp21/`) match exactly.
