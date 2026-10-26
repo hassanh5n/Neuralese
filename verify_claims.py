@@ -8,6 +8,7 @@ import random
 import sys
 from math import comb
 from statistics import mean, median
+from math import exp, log, sqrt
 
 R = "results/"
 ALPHAS = [i / 10 for i in range(11)]
@@ -56,6 +57,12 @@ def group(r):
     return "nn" if all(num) else "nw" if any(num) else "ww"
 
 
+def wilson(k, n, z=1.959964):  # Wilson score 95% CI for a proportion
+    p, d = k / n, 1 + z * z / n
+    c, h = (p + z * z / (2 * n)) / d, z * sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return round(c - h, 2), round(c + h, 2)
+
+
 # ---------------- Exp 16: GSM8K accuracy, items 0-29 ----------------
 e16 = rows("exp16/gsm8k_eval.jsonl")
 arm = lambda n: [r for r in e16 if r["noise"] == n]
@@ -71,6 +78,13 @@ check("C16.5", 0.219, sign_p(sum(g0[i] and not v[i] for i in v), sum(v[i] and no
 gu = {i: sum(r["correct"] for r in arm("gumbel") if r["item"] == i) for i in range(30)}
 di = {i: sum(r["correct"] for r in arm("discrete") if r["item"] == i) for i in range(30)}
 check("C16.6", [12, 20, 21, 23], [i for i in range(30) if gu[i] != di[i]])
+van = arm(None)
+check("C16.7", 7, sum(r["correct"] and r["stop_reason"] == "cold_stop" for r in van), 0)  # loops, then recovers
+na = sorted(r["item"] for r in van if not r["answered"])
+check("C16.8", ([8, 19, 21, 22, 28], True), (na, all(r["stop_reason"] == "cold_stop" for r in van if not r["answered"])))
+check("C16.9", [8, 19, 22, 28], [i for i in na if all(r["correct"] for r in e16 if r["noise"] is not None and r["item"] == i)])
+check("C16.10", [3, 7], [i for i in range(30) if not any(r["correct"] for r in e16 if r["item"] == i)])
+check("C16.11", ((0.76, 0.93), (0.56, 0.86)), (wilson(52, 60), wilson(22, 30)))  # discrete = Gumbel 52/60; vanilla 22/30
 
 # ---------------- Exp 21: replication of the fork measurements, items 10-49 ----------------
 sw = rows("exp21/step4_alpha_sweep_items10-49.jsonl")
@@ -118,6 +132,37 @@ nt = [r["next_top"] for r in nn]
 check("C21.12", (96, 80, 10, 52), (sum(t[5] == t[10] != t[0] for t in nt), sum(t[5] == t[0] != t[10] for t in nt),
                                    sum(t[5] not in (t[0], t[10]) and t[0] != t[10] for t in nt), sum(t[0] == t[10] for t in nt)))
 check("C21.13", 0.28, mean(r["off"][28][5] for r in nn), 0.01)
+check("C21.14", (0.85, 0.84), tuple(round(mean(snap(r) for r in nn if r["noise"] == nz), 2) for nz in (None, "gumbel")))
+# Per-block / per-layer shares with fork-level CIs, reproducing neuralese_kv_patch.summarize exactly
+# (its dedup, row order, one Random(0) shared across groups in the order num-num, num-word, word-word).
+pk, seen = [], set()
+for r in rows("exp21/step5_kv_patch_items10-49.jsonl"):
+    if "remove" in r and (r["item"], r["step"], r["A"], r["B"]) not in seen:
+        seen.add((r["item"], r["step"], r["A"], r["B"]))
+        pk.append(r)
+BLOCKS = ["L0-3", "L4-7", "L8-11", "L12-15", "L16-19", "L20-23", "L24-27"]
+frac1 = lambda rs, name, k: frac(rs, name, [k])
+rng_patch, fl_ci = random.Random(0), {}
+for g in ("nn", "nw", "ww"):
+    rs = [r for r in pk if group(r) == g]
+    boots = [rng_patch.choices(rs, k=len(rs)) for _ in range(2000)]
+    for k in BLOCKS + ["L0", "L7", "L13"]:
+        for name in ("remove", "insert"):
+            b = sorted(frac1(x, name, k) for x in boots)
+            fl_ci[g, k, name] = (round(frac1(rs, name, k), 2), round(b[49], 2), round(b[1949], 2))
+blk = lambda g, ks: tuple((fl_ci[g, k, "remove"][0], fl_ci[g, k, "insert"][0]) for k in ks)
+check("C21.15", ((0.58, 0.55), (0.19, 0.16), (0.06, 0.09), (0.12, 0.17)), blk("nn", BLOCKS[:4]))
+check("C21.16", True, all(abs(v) <= 0.04 for pair in blk("nn", BLOCKS[4:]) for v in pair))  # num-num L16-27 <= 0.04 each
+check("C21.17", ((0.66, 0.75), (0.10, 0.16)), blk("ww", BLOCKS[:2]))
+check("C21.18", True, all(abs(v) <= 0.07 for pair in blk("ww", BLOCKS[2:]) for v in pair))  # word-word rest <= 0.07
+check("C21.19", ((0.38, 0.16), (0.13, 0.12), (0.08, 0.13)), blk("nn", ["L0", "L7", "L13"]))
+check("C21.20", True, all(fl_ci["nn", k, n][1] > 0 for k in ("L0", "L7", "L13") for n in ("remove", "insert")))  # CIs exclude 0
+nnp = [r for r in pk if group(r) == "nn"]
+check("C21.21", (0.95, 1.06), tuple(round(sum(frac1(nnp, n, k) for k in BLOCKS), 2) for n in ("remove", "insert")))
+# P6 margin: min over (num-num, word-word) x (remove, insert) of the problem-level CI lower bound of early - late
+p6 = [boot([r for r in pa if group(r) == g and "remove" in r], lambda rs, n=n: frac(rs, n, EARLY) - frac(rs, n, LATE))[0]
+      for g in ("nn", "ww") for n in ("remove", "insert")]
+check("C21.22", 0.31, min(p6))
 
 # ---------------- Exp 22: what blends noise feeds, items 10-29 ----------------
 e22 = rows("exp22/exp22_mixtures_items10-29.jsonl")
@@ -135,6 +180,11 @@ for cid, nz, frate, allp, forkp, med, flip in (("C22.1", None, 0.092, 0.78, 0.00
         check("C22.4", 0.45, 1 - mean(r["pre1"][i] for r, i in fk))  # Gumbel-max: flip rate = 1 - mean top weight
     if nz is None:
         check("C22.5", True, all(r["fed1"] == r["pre1"] and r["fed2"] == r["pre2"] for r in rs))
+
+# Amendment closed form (two-candidate Gumbel, tau = 0.5): P(fed top >= 0.9) = 1 - sig(ln3 - d) + sig(-ln3 - d), d = ln(w1/w2)
+sig = lambda x: 1 / (1 + exp(-x))
+cform = lambda w1, w2: 1 - sig(0.5 * log(9) - log(w1 / w2)) + sig(-0.5 * log(9) - log(w1 / w2))
+check("C22.6", (0.50, 0.60), (round(cform(0.5, 0.5), 2), round(cform(0.75, 0.25), 2)))
 
 # ---------------- Exp 23: coupled residual ablation, items 50-149 ----------------
 e23 = rows("exp23/exp23_residual_ablation_items50-149.jsonl")
@@ -154,6 +204,15 @@ ms = [mean(r["kl"]["soft"][:min(r["flip"]["soft"], r["flip"]["rand"])]) for r in
 mr = [mean(r["kl"]["rand"][:min(r["flip"]["soft"], r["flip"]["rand"])]) for r in e23]
 check("C23.7", (0.0077, 0.0014), (round(mean(ms), 4), round(mean(mr), 4)))
 check("C23.8", 94, sum(s > q for s, q in zip(ms, mr)), 0)
+check("C23.9", ((0.80, 0.93), (0.78, 0.91), (0.73, 0.88)), tuple(wilson(k, 100) for k in (88, 86, 82)))  # soft / hard / rand
+# Embedding-norm check (neuralese_exp23_norms.py, Kaggle T4): is `rand` a fair control?
+nj = json.load(open(R + "exp23/exp23_embedding_norms.json"))
+pop, drw, rea = nj["population_real_token_rows"], nj["exp23_rand_draws"], nj["reasoning_tokens_sampled_cot"]
+check("C23.10", (1.195, 1.195, 1.196, 1.202), (round(pop["median"], 3), round(drw["median"], 3),
+                                              round(drw["usage_weighted_median"], 3), round(rea["median"], 3)))
+check("C23.11", (0.994, 0.961), (round(drw["median"] / rea["median"], 3), round(drw["mean"] / rea["mean"], 3)))
+check("C23.12", (0.897, 1.058), (round(drw["p10"], 3), round(rea["p10"], 3)))
+check("C23.13", (8192, 9168, 5), (drw["n"], rea["n"], len(rea["think_steps_per_item"])), 0)
 
 print(f"\n{'ALL CLAIMS VERIFIED' if not fails else 'MISMATCHES: ' + ', '.join(fails)}")
 sys.exit(1 if fails else 0)

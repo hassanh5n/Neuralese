@@ -1,0 +1,45 @@
+{
+  "population_real_token_rows": {
+    "n": 151665,
+    "median": 1.1949,
+    "p10": 0.9089,
+    "p90": 1.3549,
+    "mean": 1.1668
+  },
+  "exp23_rand_draws": {
+    "n": 8192,
+    "median": 1.1946,
+    "p10": 0.8966,
+    "p90": 1.3559,
+    "mean": 1.1649,
+    "usage_weighted_median": 1.1962,
+    "usage_weights_from": "exp23_residual_ablation_items50-149.jsonl"
+  },
+  "reasoning_tokens_sampled_cot": {
+    "n": 9168,
+    "median": 1.2019,
+    "p10": 1.0575,
+    "p90": 1.3758,
+    "mean": 1.2127,
+    "think_steps_per_item": {
+      "50": 763,
+      "51": 3518,
+      "52": 811,
+      "53": 900,
+      "54": 3176
+    }
+  },
+  "ratio_median_draws_to_reasoning": 0.994,
+  "ratio_median_population_to_reasoning": 0.994,
+  "versions": {
+    "python": "3.13.15",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.20.2",
+    "cuda": "12.8",
+    "gpu": "Tesla T4",
+    "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+    "model_revision": null,
+    "vocab_rows": 151936,
+    "real_tokens": 151665
+  }
+}

@@ -5,7 +5,7 @@ Created 2026-10-17 by merging `neuralese-research-log.md` (Exp 1–8, literature
 and in git; they remain the lab notebook. **This file is the paper's source of truth.**
 
 **The rule.** A number may appear in the paper only if it has a row in the claim ledger (§2) and
-`python verify_claims.py` recomputes it from `results/`. Status on 2026-10-17: **70/70 checks pass.**
+`python verify_claims.py` recomputes it from `results/`. Status on 2026-10-26: **90/90 checks pass** (16 added on 2026-10-22 for numbers quoted in §3 and §5, no value changed; 4 added on 2026-10-26 for the Exp 23 embedding-norm check).
 Numbers in §6–§8 are history and must not be copied into the paper.
 
 Contents: 1 Glossary · 2 Claim ledger · 3 Pre-registration record · 4 Setup · 5 Results (Exp 16, 21, 22, 23) ·
@@ -44,6 +44,11 @@ CIs are 95% bootstrap over problems unless marked. Model: DeepSeek-R1-Distill-Qw
 | C16.4 | Runs that produced a boxed answer | **141/150** | exp16 |
 | C16.5 | Vanilla vs Gumbel seed 0, paired McNemar | 5 vs 1, p = 0.22 (**not significant**) | exp16 |
 | C16.6 | Items where Gumbel and discrete differ | 12, 20, 21, 23 (cancel out) | exp16 |
+| C16.7 | Vanilla runs that hit Cold Stop and still answered correctly (loop, then recover) | 7 | exp16 |
+| C16.8 | Vanilla no-answer items; all ended in Cold Stop | 8, 19, 21, 22, 28; yes | exp16 |
+| C16.9 | Of those, items solved in every discrete and Gumbel run | 8, 19, 22, 28 (4 of 5) | exp16 |
+| C16.10 | Items wrong in every run of every condition | 3, 7 | exp16 |
+| C16.11 | Wilson 95% CI: 52/60 (discrete, Gumbel); 22/30 (vanilla) | [0.76, 0.93]; [0.56, 0.86] | exp16 |
 | C21.1 | Forks found / unique, items 10–49 | 694 / 670 | exp21/step4_alpha_sweep_items10-49.jsonl |
 | C21.2 | Layer-0 check: c(α) = α at the embedding | max error 1.5e-7 | exp21 step4 |
 | C21.3 | Forks per kind | num-num 238 (40 problems), num-word 56 (24), word-word 376 (40) | exp21 step4 |
@@ -56,20 +61,36 @@ CIs are 95% bootstrap over problems unless marked. Model: DeepSeek-R1-Distill-Qw
 | C21.9 | Same with A's own text (dormancy) | num-num −0.01, num-word +0.06, word-word +0.02 | exp21 carryover |
 | C21.10 | Share of gap closed by layers 0–7, remove / insert | num-num 0.77 / 0.71; word-word 0.77 / 0.91 | exp21/step5_kv_patch_items10-49.jsonl |
 | C21.11 | Share closed by layers 12–27, remove / insert | num-num 0.12 / 0.26; word-word 0.08 / 0.14 | exp21 patch |
+| C21.14 | num-num final snap, vanilla / Gumbel traces | 0.85 / 0.84 | exp21 step4 |
+| C21.15 | num-num per-block share, remove / insert: L0–3, L4–7, L8–11, L12–15 | 0.58 / 0.55, 0.19 / 0.16, 0.06 / 0.09, 0.12 / 0.17 | exp21 patch |
+| C21.16 | num-num blocks L16–19, L20–23, L24–27 | ≤ 0.04 each | exp21 patch |
+| C21.17 | word-word per-block share, remove / insert: L0–3, L4–7 | 0.66 / 0.75, 0.10 / 0.16 | exp21 patch |
+| C21.18 | word-word blocks L8–27 | ≤ 0.07 each | exp21 patch |
+| C21.19 | num-num single layers, remove / insert: L0, L7, L13 | 0.38 / 0.16, 0.13 / 0.12, 0.08 / 0.13 | exp21 patch |
+| C21.20 | Fork-level 95% CIs of C21.19 exclude 0 (as `neuralese_kv_patch.py`) | yes | exp21 patch |
+| C21.21 | num-num blocks sum to, remove / insert | 0.95 / 1.06 | exp21 patch |
+| C21.22 | P6 margin: min CI lower bound of (layers 0–7 − 12–27) | 0.31 | exp21 patch |
 | C22.1 | Vanilla, items 10–29: fork rate; fed top ≥ 0.9 all steps / forks; median fed top / runner-up at forks; winner flipped | 9.2%; 0.78 / 0.00; 0.56 / 0.33; 0.00 | exp22/exp22_mixtures_items10-29.jsonl |
 | C22.2 | Gumbel, same measures | 13.0%; 0.85 / **0.47**; **0.88 / 0.10**; 0.45 | exp22 |
 | C22.3 | Dirichlet, same measures | 13.3%; 0.83 / 0.37; 0.83 / 0.16; 0.42 | exp22 |
 | C22.4 | Gumbel-max check: Gumbel flip rate vs sampling (1 − mean pre-noise top weight) | 0.45 vs 0.45 | exp22 |
 | C22.5 | Vanilla fed weights = pre-noise weights at every step | true | exp22 |
+| C22.6 | Amendment closed form, two-candidate Gumbel P(fed top ≥ 0.9) at 50/50 and 75/25 | 0.50, 0.60 | formula (no data) |
 | C23.1 | Accuracy, items 50–149: hard / soft / rand | 86 / 88 / 82 of 100 | exp23/exp23_residual_ablation_items50-149.jsonl |
 | C23.2 | Soft vs hard, McNemar | soft-only 6, hard-only 4, p = 0.754; same final answer 84/100 | exp23 |
 | C23.3 | Rand vs hard, McNemar | rand-only 3, hard-only 7, p = 0.344; same final answer 84/100 | exp23 |
 | C23.4 | Median first token flip vs hard (step) | soft 35.5, rand 66 | exp23 |
 | C23.5–6 | Which arm diverges from hard first (paired) | soft first 59, rand first 24, same 17; sign test p = 0.0002 | exp23 |
 | C23.7–8 | Mean per-item KL(arm ‖ hard), matched steps (before either arm's first flip) | soft 0.0077, rand 0.0014; soft > rand on 94/100 items | exp23 |
+| C23.9 | Wilson 95% CI: soft 88, hard 86, rand 82 of 100 | [0.80, 0.93], [0.78, 0.91], [0.73, 0.88] | exp23 |
+| C23.10 | Median embedding norm: all real-token rows / the 8,192 random rows Exp 23 drew / same, usage-weighted / reasoning tokens (sampled CoT, items 50–54) | 1.195 / 1.195 / 1.196 / 1.202 | exp23/exp23_embedding_norms.json |
+| C23.11 | Random rows ÷ reasoning tokens, median / mean | 0.994 / 0.961 | exp23 norms |
+| C23.12 | 10th percentile: random rows / reasoning tokens | 0.897 / 1.058 | exp23 norms |
+| C23.13 | n: random draws / reasoning tokens / reasoning items | 8,192 / 9,168 / 5 | exp23 norms |
 
-Additional derived values, not yet scripted (add to `verify_claims.py` before citing): Wilson 95% CIs for accuracy
-(52/60 [0.76, 0.93]; 22/30 [0.56, 0.86]; 88/100 [0.80, 0.93]; 86/100 [0.78, 0.91]; 82/100 [0.73, 0.88]).
+Not scripted: the Exp 22 closed form's three-candidate and Dirichlet values (simulation; rerun
+`neuralese_exp22_closed_form.py`, needs numpy). C23.10–13 check the saved output of `neuralese_exp23_norms.py`
+(a GPU run), not a recomputation from the model.
 
 ## 3. Pre-registration record
 
@@ -127,7 +148,7 @@ on a 10-item pilot, then tested on 40 held-out items" and report no pilot number
 
 ### Exp 16: GSM8K accuracy (2026-10-03)
 
-Conditions: discrete CoT seeds 0/1, vanilla, Gumbel seeds 0/1, items 0–29 (150 runs). Numbers: C16.1–C16.6.
+Conditions: discrete CoT seeds 0/1, vanilla, Gumbel seeds 0/1, items 0–29 (150 runs). Numbers: C16.1–C16.11.
 
 - 141/150 runs produce a boxed answer, so the setup measures reasoning, not finishing.
 - **Greedy Pitfall reproduced in behaviour:** vanilla ends in Cold Stop (a repetition loop) in 14/30 runs; Gumbel and
@@ -141,7 +162,7 @@ Conditions: discrete CoT seeds 0/1, vanilla, Gumbel seeds 0/1, items 0–29 (150
 ### Exp 21: does the model carry a blend, store the runner-up, and where? (2026-10-07)
 
 Replicates the pilot measurements (Exp 17, 18, 20, items 0–9) unchanged on fresh items 10–49; vanilla and Gumbel
-traces, seed 0. 670 unique forks. Numbers: C21.1–C21.13. All six pre-registered predictions met (§3).
+traces, seed 0. 670 unique forks. Numbers: C21.1–C21.22. All six pre-registered predictions met (§3).
 
 **Measurement 1 (α-sweep, `neuralese_sweep.py`).** At each fork, from the same cached prefix, feed α·emb(A) +
 (1−α)·emb(B) for α = 0, 0.1, …, 1, and project every layer's state onto the line from the pure-B to the pure-A state.
@@ -164,8 +185,7 @@ and control caches, per layer and per 4-layer block.
 - Per-block (num-num remove / insert): L0–3 0.58 / 0.55, L4–7 0.19 / 0.16, L8–11 0.06 / 0.09, L12–15 0.12 / 0.17,
   L16–27 ≤ 0.04 each. Word-word: L0–3 0.66 / 0.75, L4–7 0.10 / 0.16, the rest ≤ 0.07. Notable single layers for
   num-num: L0 0.38 / 0.16, L7 0.13 / 0.12, L13 0.08 / 0.13 (fork-level CIs exclude 0). Blocks sum to ≈ 1 (0.95 / 1.06
-  num-num), so layer effects are roughly additive. *These per-block values were recomputed on 2026-10-17 but are not
-  yet in `verify_claims.py`; add them before citing.*
+  num-num), so layer effects are roughly additive. (C21.15–C21.21.)
 - Num-word: gap too small (+0.11) to localise.
 
 **Reading.** The runner-up survives mostly as an echo of the input mix in early layers, plus a small processed trace
@@ -176,7 +196,7 @@ are the most favourable case for the runner-up (Exp 22).
 ### Exp 22: what blends does noise actually feed? (2026-10-11)
 
 `neuralese_mixtures.py` replays ordinary runs (same RNG use as Exp 16) for vanilla, Gumbel and Dirichlet, seed 0,
-items 10–29, recording pre-noise and fed weights at every thinking step. Numbers: C22.1–C22.5.
+items 10–29, recording pre-noise and fed weights at every thinking step. Numbers: C22.1–C22.6.
 - Forks are 9–13% of thinking steps.
 - At forks, Gumbel feeds a near-one-token blend (fed top ≥ 0.9) only 47% of the time; the median fed blend is
   0.88 / 0.10. Dirichlet: 37%, median 0.83 / 0.16. Across all steps, 83–85% of fed blends are near one-token.
@@ -193,7 +213,7 @@ items 10–29, recording pre-noise and fed weights at every thinking step. Numbe
 `neuralese_residual_ablation.py`, items 50–149, seed 0. Three arms run in lockstep with shared Gumbel noise keyed by
 (seed, step, token id): **hard** (one-hot top token = sampling), **soft** (full blend = Gumbel Soft Thinking),
 **rand** (top token at its blend weight, residual moved onto a random vocabulary token). Cold Stop on in all arms.
-Numbers: C23.1–C23.8.
+Numbers: C23.1–C23.9.
 - **The model reads the residual:** on matched steps, soft moves next-token predictions about 5× more than an
   equal-mass random residual (0.0077 vs 0.0014; soft > rand on 94/100 items), and soft diverges from sampling before
   rand does on 59 items vs 24 (p = 0.0002).
@@ -202,8 +222,10 @@ Numbers: C23.1–C23.8.
 - Use matched-step KL, not the per-item KL logged at first (soft 0.545, rand 0.009), which averages each arm over its own
   steps up to its first flip and is dominated by the flip step.
 - Pre-registered: E1 not met (opposite direction), E2 met.
-- **Unbacked:** the embedding-norm check (random vocabulary rows median norm 1.195 vs 1.251 for generated tokens, so
-  `rand` is a fair control) exists only in notebook output. Save it to `results/exp23/` or do not cite the numbers.
+- **`rand` is a fair control** (`neuralese_exp23_norms.py`, rerun 2026-10-26; C23.10–13): the random rows Exp 23 actually
+  drew (regenerated with the same keyed RNG on GPU) have median norm 1.195, the same as all real-token rows, and real
+  reasoning tokens 1.202 (ratio 0.994; means 0.961). The random rows have a heavier low tail (10th percentile 0.897 vs
+  1.058), so a minority of draws carry a weaker signal; this cannot explain a 5× KL gap.
 
 ### Overall reading
 
@@ -261,6 +283,7 @@ These shaped the design. None has saved output; do not cite any number from them
 | **2026-10-17** | **Exp 23: median first flip is 35.5 (soft) and 66 (rand)**, not 36 and 67. | this validation |
 | **2026-10-17** | **Pilot "prior bias for numbers" does not replicate** in Exp 21 (96 vs 80, p = 0.26). | this validation |
 | 2026-10-17 | Exp 16: mean time per run is ~3 s lower than logged (not used in the paper). | Log 2 |
+| **2026-10-26** | **Exp 23 norm check: reasoning tokens median 1.202, not 1.251; random rows are ~0.6% smaller, not ~5%.** The old reference set was never saved; the new one is sampled CoT on items 50–54. Random-row median (1.195) unchanged. | `neuralese_exp23_norms.py` |
 
 ## 9. Literature sources (verify each before citing; see next-steps-figures-validation.md §3 Step 5)
 
@@ -282,10 +305,14 @@ These shaped the design. None has saved output; do not cite any number from them
 
 ## 10. Open items
 
-1. Save the Exp 23 embedding-norm check to `results/exp23/`, or drop its numbers.
-2. Add the Exp 21 per-block values and accuracy CIs to `verify_claims.py` before citing them.
+1. ~~Save the Exp 23 embedding-norm check to `results/exp23/`.~~ Done 2026-10-26 (C23.10–13).
+2. ~~Add the Exp 21 per-block values and accuracy CIs to `verify_claims.py`.~~ Done 2026-10-22 (C16.7–C23.9, 86/86).
 3. Optional: rerun the items 0–9 pilot (all runs are seeded) if the paper should report pilot numbers; otherwise not needed.
-4. Pin model revision, `transformers` version and Kaggle image in the paper's reproducibility section.
+4. Pin model revision, `transformers` version and Kaggle image in the paper's reproducibility section. Partly done:
+   the norm-check run recorded torch 2.11.0+cu128, transformers 5.20.2, CUDA 12.8, Python 3.13.15, Tesla T4. These are
+   that run's versions only: every notebook ran `pip install -U transformers`, so Exp 16–23 may have used other versions
+   (check each Kaggle version's log). Model revision not captured (`_commit_hash` is None in transformers 5.x); get it
+   from `huggingface_hub.model_info(MODEL).sha` and pass `revision=` in `load()` from now on.
 5. Writing items carried from paper-writing-fixes.md: shrink the Exp 17 framing and cite Backour; one paragraph on the
    Rizvi-Martel tension. Track 3 (faithfulness, SFT vs RL) stays future work.
 6. Next: figure scripts (one per figure, reading `results/`).
