@@ -1,32 +1,34 @@
 \section{Related work}\label{sec:related}
 
 \paragraph{Soft Thinking and noise.}
-\citet{zhang2025soft} introduced \ST{}, a training-free method that feeds probability-weighted mixtures of token
+Zhang et al.~\cite{zhang2025soft} introduced \ST{}, a training-free method that feeds probability-weighted mixtures of token
 embeddings during thinking, and reported small accuracy gains and shorter generations on math and code benchmarks.
-\citet{wu2025single} probed the method and found that models rely mainly on the top token of the blend, which
+Wu et al.~\cite{wu2025single} probed the method and found that models rely mainly on the top token of the blend, which
 produces the Greedy Pitfall; they call the models single-threaded reasoners.
-They proposed Stochastic \ST{} with Dirichlet or Gumbel-Softmax noise \citep{jang2017categorical,maddison2017concrete}
-and motivated the Gumbel variant through the Gumbel-max trick and its top-$k$ extension \citep{kool2019stochastic}.
+They proposed Stochastic \ST{} with Dirichlet or Gumbel-Softmax noise \cite{jang2017categorical,maddison2017concrete}
+and motivated the Gumbel variant through the Gumbel-max trick and its top-$k$ extension \cite{kool2019stochastic}.
 They did not isolate the weight off the top token in a controlled test.
 We make the consequence of the trick explicit, check it in logged runs, and isolate the residual with a coupled
 ablation, which refines their single-threaded account for the Gumbel variant.
-Noisy soft tokens are also used for training: \citet{butt2025soft} add noise to soft input embeddings for
-reinforcement-learning exploration, and \citet{zheng2025softgrpo} inject Gumbel noise and use Gumbel-Softmax in
+Noisy soft tokens are also used for training: Butt et al.~\cite{butt2025soft} add noise to soft input embeddings for
+reinforcement-learning exploration, and Zheng et al.~\cite{zheng2025softgrpo} inject Gumbel noise and use Gumbel-Softmax in
 policy optimisation.
 Our analysis concerns a fixed, untrained model at inference.
 
 \paragraph{Is superposition used?}
-\citet{zhu2025superposition} prove that continuous thoughts can encode several search frontiers in one state, and
-\citet{hao2024coconut} report breadth-first-search-like latent states in Coconut.
-\citet{deng2025latent} train latent reasoning to act as a superposition of reasoning paths.
-\citet{rizvimartel2026illusion} test whether superposition occurs in three regimes and find signs of it only in
-models trained from scratch with latent thoughts; in the training-free regime, vanilla \ST{} looks much like
-discrete decoding under the logit lens.
-We study the training-free regime with noise, condition on forks where the model is uncertain, and go beyond
-the next-token readout to storage in the key-value cache and to causal use.
+Zhu et al.~\cite{zhu2025superposition} prove that continuous thoughts can encode several search frontiers in one state, and
+Hao et al.~\cite{hao2024coconut} report breadth-first-search-like latent states in Coconut.
+Deng et al.~\cite{deng2025latent} train latent reasoning to act as a superposition of reasoning paths.
+Rizvi-Martel et al.~\cite{rizvimartel2026illusion} separate \emph{forced} superposition, constructed at the input as in \ST{}, from
+\emph{learned} superposition that emerges from training with latent thoughts.
+They test three regimes and find signs of superposition being used only in models trained from scratch; in the
+training-free regime, vanilla \ST{} looks much like discrete decoding under the logit lens.
+We study forced superposition in the training-free regime with noise, condition on forks where the model is
+uncertain, and go beyond the next-token readout to what persists in the key-value cache and to causal use.
+Like theirs, our tests are at the level of single positions, not of whole reasoning paths.
 
 \paragraph{Collapse of mixtures.}
-\citet{backour2026dynamics} injects two-way mixtures of embeddings into pretrained models and projects each layer's
+Backour~\cite{backour2026dynamics} injects two-way mixtures of embeddings into pretrained models and projects each layer's
 state onto the line between the two pure states.
 Backour finds that trained models collapse mixtures far more than random-initialised controls and that softmax readout
 with autoregressive feedback amplifies small imbalances until one component dominates.
@@ -35,17 +37,17 @@ We then ask what the collapse leaves behind, what blends the noise feeds, and wh
 predictions and answers.
 
 \paragraph{Causal analysis of latent reasoning.}
-Activation patching localises information by swapping internal states between runs \citep{meng2022locating}; our
+Activation patching localises information by swapping internal states between runs \cite{meng2022locating}; our
 key-value patching applies it to the cache entries of one position.
-For trained latent reasoners, \citet{li2026dynamics} intervene on latent steps of Coconut and CODI and report a gap
+For trained latent reasoners, Li et al.~\cite{li2026dynamics} intervene on latent steps of Coconut and CODI and report a gap
 between early output bias and late representational commitment.
-\citet{zhang2025latent} find that Coconut's latent tokens are insensitive to steering and support shortcuts, and
-\citet{aswal2026observable} show that decodable latent patterns also appear in controls and need not affect behaviour.
-\citet{jin2026final} track latent-reasoning faithfulness across training.
+Zhang et al.~\cite{zhang2025latent} find that Coconut's latent tokens are insensitive to steering and support shortcuts, and
+Aswal et al.~\cite{aswal2026observable} show that decodable latent patterns also appear in controls and need not affect behaviour.
+Jin et al.~\cite{jin2026final} track latent-reasoning faithfulness across training.
 Following their advice, each of our causal tests has a matched control: a control token in Q2 and a random residual
 in Q4.
 
 \paragraph{Two senses of superposition.}
 In interpretability, superposition usually means that a network represents more features than it has dimensions
-\citep{elhage2022toy}.
+\cite{elhage2022toy}.
 We use the word only in the latent-reasoning sense above: several candidate continuations carried and used at once.

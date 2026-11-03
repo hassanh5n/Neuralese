@@ -1,12 +1,12 @@
 \section{Discussion}\label{sec:discussion}
 
-\paragraph{Reconciling with \citet{wu2025single}.}
-\citet{wu2025single} report that \GST{} outperforms matched sampling, with the same temperature, top-$p$ and top-$k$,
+\paragraph{Reconciling with Wu et al.~\cite{wu2025single}.}
+Wu et al.~\cite{wu2025single} report that \GST{} outperforms matched sampling, with the same temperature, top-$p$ and top-$k$,
 on three 32B reasoning models. % CITE(wu2025single)
 The gain, averaged over their eight benchmarks, is $+0.42$ to $+1.05$ points, with no variance or significance % CITE(wu2025single)
 reported; GPQA-Diamond shows the largest gains, up to $+5.05$ points (their Table~2). % CITE(wu2025single)
-At 1.5B on GSM8K we find no difference % SETUP
-(Exp~16: 52 of 60 for both; Exp~23: 88 vs 86 of 100, McNemar $p = 0.754$). % C16.1 C16.3 C23.1 C23.2
+At 1.5B on GSM8K we find no detectable difference % SETUP
+(accuracy comparison: 52 of 60 for both; coupled ablation: 88 vs 86 of 100, McNemar $p = 0.754$). % C16.1 C16.3 C23.1 C23.2
 The two findings are compatible.
 Wu et al.\ motivate Gumbel-Softmax through the Gumbel-max trick; its consequence is that the top token of \GST{} is
 distributed exactly as a sampled token, which we confirm (flip rate 0.45 for both). % C22.4
@@ -17,19 +17,19 @@ and theirs 4.0 by default. % CITE(wu2025single)
 Any accuracy difference between \GST{} and sampling must therefore come from the residual.
 Our coupled ablation holds the noise fixed and removes only the residual.
 The model reads it, yet accuracy does not change detectably.
-Our test cannot exclude effects of a few points in either direction, a range that includes the gains
+Our paired interval runs from 5 points below sampling to 9 points above it, a range that includes the gains % C23.17
 Wu et al.\ report.
 For the Gumbel variant this refines their single-threaded account: the top token is a sample, and the residual is
 read but leaves accuracy unchanged within our power.
 Three differences could separate the settings.
 A 32B model may use a residual that % CITE(wu2025single)
 a 1.5B model only stores. % SETUP
-GSM8K is near ceiling for our model (86 to 88\% in Exp~23), while the largest reported gains are on harder % C23.1
+GSM8K is near ceiling for our model (86 to 88\% in the coupled ablation), while the largest reported gains are on harder % C23.1
 benchmarks.
 Our study lacks the power to resolve effects of a few points, and Wu et al.\ report no variance.
 Running the coupled ablation on a 32B model and a harder benchmark would show which explanation applies. % CITE(wu2025single)
 
-\paragraph{The tension with \citet{rizvimartel2026illusion}.}
+\paragraph{The tension with Rizvi-Martel et al.~\cite{rizvimartel2026illusion}.}
 They conclude that off-the-shelf models collapse \ST{} inputs within the first few layers, while our
 \cref{fig:snap} shows a gradual collapse that is complete only at the output.
 The two results measure different things.
@@ -42,18 +42,25 @@ We condition on forks, feed exact 50/50 blends of the two candidates, and track 
 layer.
 On these inputs the blend is still far from a clean switch at layer 7 (snap 0.37 to 0.70). % C21.4
 This agrees with their own test on uniform mixtures, where entropy drops only at the last layers, and with
-\citet{backour2026dynamics}, who finds that Qwen models accumulate collapse toward the output.
-Collapse in the next-token readout also does not mean the runner-up is lost: it stays mostly in the keys and values of
-layers 0 to 7 and can be read back later (\cref{sec:q2}). % C21.10
+Backour~\cite{backour2026dynamics}, who finds that Qwen models accumulate collapse toward the output.
+Collapse in the next-token readout also does not mean the runner-up is lost: a trace of it persists, mostly in the
+keys and values of layers 0 to 7, and shifts later predictions toward it (\cref{sec:q2}). % C21.10
 Our blends are 50/50, likely an upper bound on real forks, where the median residual is 0.12. % C22.12
 
-\paragraph{What used superposition would require.}
-Our results separate three levels: storing a candidate, reading it, and using it.
-The model stores the runner-up and reads the residual, so the information reaches later computation.
-For the model to reason in superposition, the stored candidate would have to influence the model's own path, where we
-find it dormant, and the residual would have to change answers, where we find no detectable effect on accuracy.
-Training may change this.
-Models trained with latent thoughts from scratch show signs of superposition \citep{rizvimartel2026illusion}, and
-reinforcement learning with soft tokens is now practical \citep{butt2025soft,zheng2025softgrpo}.
-The coupled ablation applies to such models unchanged: shared noise gives the arms the same top token until their contexts
-diverge, so the residual is the only source of divergence.
+\paragraph{What our evidence says about superposition.}
+Our results separate three levels of token-level superposition: a second candidate present in the input, read by
+the model, and used.
+The forced 50/50 blends are present in the input, and a trace of the runner-up persists in the cache.
+The residual of \GST{} is read: it shifts next-token predictions far more than a random residual.
+We find no evidence that it is used.
+For that, the trace would have to shift predictions on the model's own path, where we detect no shift, and the
+residual would have to change answers, where we detect no accuracy change and the real residual changes answers
+no more often than a random one.
+Two limits keep this from being a general verdict on superposition.
+Our blends are forced, not learned; models trained with latent thoughts from scratch show signs of using
+superposition \cite{rizvimartel2026illusion}, and reinforcement learning with soft tokens is now practical
+\cite{butt2025soft,zheng2025softgrpo}.
+And we test single positions, not whole reasoning paths: a model could in principle keep two lines of reasoning
+alive across many steps without either one leaving a detectable trace at a single fork.
+The coupled ablation applies to trained models unchanged: shared noise gives the arms the same top token until their
+contexts diverge, so the residual is the only source of divergence.

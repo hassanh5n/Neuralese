@@ -9,39 +9,3 @@ bounds over all 56 single-layer tests. % C21.35
 \Cref{fig:readback-unbinned} shows the readback at single positions of the forced text, and \cref{fig:perfork} the
 per-fork spread behind the pooled shares.
 
-\input{figures/tabA1.tex}
-\input{figures/tabA2.tex}
-\input{figures/tabA3.tex}
-
-\begin{figure}[t]
-\centering
-\includegraphics{figA1.pdf}
-\caption{Readback at each position of the forced text, without the binning of \cref{fig:readback}b--c.
-Top: mean readback (control minus blend) with 95\% bootstrap CIs over problems, for the runner-up's text
-(left) and the model's own text (right).
-Bottom: number of forks with a defined score at that position (positions where the chosen token and the runner-up
-barely differ are skipped).
-With the runner-up's text, the mean stays above 0 at every position for number vs number and word vs word; % C21.38
-with the model's own text it stays around 0.
-Single positions hold few forks, so their CIs are wide; this is why \cref{fig:readback} pools positions into
-log-spaced bins.}
-\label{fig:readback-unbinned}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics{figA2.pdf}
-\caption{Per-fork shares behind the pooled bars of \cref{fig:patch}, for layer 0 and layers 0--3. % C21.31
-Each dot is one fork with a blend--control gap of at least 0.1 % C21.32
-(78 number vs number forks, 108 word vs word); % C21.32
-filled = remove, open = insert.
-Black bar: median per fork.
-Diamond: pooled share, as plotted in \cref{fig:patch}.
-For number vs number, layer 0 is uneven across forks: half of them have a remove
-share below 0.12 and a quarter are above 0.68, % C21.39
-so the pooled 0.38 sits well above the median fork % C21.34
-(0.12; insert: 0.16 vs 0.02). % C21.34
-For layers 0--3 the median fork is close to the pooled share. % C21.31
-Dots outside the axis range are drawn at its edge as triangles.}
-\label{fig:perfork}
-\end{figure}

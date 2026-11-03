@@ -194,20 +194,47 @@ def mcn(x, y):  # x only, y only, exact two-sided p
     return [str(a), str(b), f"{min(1.0, 2 * sum(comb(a + b, i) for i in range(min(a, b) + 1)) / 2 ** (a + b)):.2f}"]
 
 
-def acc(ok):
-    lo, hi = wilson_ci(sum(ok), len(ok))
+def acc(ok, lohi=None):
+    lo, hi = lohi or wilson_ci(sum(ok), len(ok))
     return [str(len(ok)), str(sum(ok)), f"{sum(ok) / len(ok):.2f} [{lo:.2f}, {hi:.2f}]"]
+
+
+def pdiff(x, y):  # Newcombe (1998) hybrid score CI for a paired difference, written out independently
+    n = len(y)
+    a = sum(x[i] and y[i] for i in y); b = sum(x[i] and not y[i] for i in y); c = sum(y[i] and not x[i] for i in y)
+    d = n - a - b - c
+    p1, p2 = (a + b) / n, (a + c) / n
+    l1, u1 = wilson_ci(a + b, n); l2, u2 = wilson_ci(a + c, n)
+    ad_bc = a * d - b * c
+    if ad_bc > 0:
+        ad_bc = max(ad_bc - n / 2, 0)
+    phi = ad_bc / sqrt((a + b) * (c + d) * (a + c) * (b + d))
+    return (p1 - p2, p1 - p2 - sqrt((p1 - l1) ** 2 - 2 * phi * (p1 - l1) * (u2 - p2) + (u2 - p2) ** 2),
+            p1 - p2 + sqrt((u1 - p1) ** 2 - 2 * phi * (u1 - p1) * (p2 - l2) + (p2 - l2) ** 2))
+
+
+def pboot(vals, n=2000):  # problem bootstrap, same draws as verify_claims.boot
+    rng = random.Random(0)
+    v = sorted(sum(vals[i] for i in rng.choices(range(len(vals)), k=len(vals))) / len(vals) for _ in range(n))
+    return v[int(0.025 * n)], v[int(0.975 * n) - 1]
+
+
+def fmt(est, lo, hi):
+    g = lambda v: "0.00" if abs(v) < 0.005 else ("+" if v > 0 else "$-$") + f"{abs(v):.2f}"
+    return f"{g(est)} [{g(lo)}, {g(hi)}]"
 
 
 e16 = [json.loads(l) for l in open(R + "exp16/gsm8k_eval.jsonl") if l.strip()]
 e23 = [json.loads(l) for l in open(R + "exp23/exp23_residual_ablation_items50-149.jsonl") if l.strip()]
 seed0 = lambda nz: {r["item"]: r["correct"] for r in e16 if r["noise"] == nz and r["seed"] == 0}
-want = []
-for nz in ("discrete", None, "gumbel"):
-    want.append(acc([r["correct"] for r in e16 if r["noise"] == nz]) + ([] if nz == "discrete" else mcn(seed0(nz), seed0("discrete"))))
+pp = lambda nz: [sum(r["correct"] for r in e16 if r["noise"] == nz and r["item"] == i) / 2 for i in range(30)]
+want = [acc([r["correct"] for r in e16 if r["noise"] == "discrete"], pboot(pp("discrete"))),
+        acc([r["correct"] for r in e16 if r["noise"] is None]) + [fmt(*pdiff(seed0(None), seed0("discrete")))] + mcn(seed0(None), seed0("discrete")),
+        acc([r["correct"] for r in e16 if r["noise"] == "gumbel"], pboot(pp("gumbel")))
+        + [fmt(0.0, *pboot([g - q for g, q in zip(pp("gumbel"), pp("discrete"))]))] + mcn(seed0("gumbel"), seed0("discrete"))]
 arm23 = lambda a: {r["item"]: r[a]["correct"] for r in e23}
 for a in ("hard", "soft", "rand"):
-    want.append(acc(list(arm23(a).values())) + ([] if a == "hard" else mcn(arm23(a), arm23("hard"))))
+    want.append(acc(list(arm23(a).values())) + ([] if a == "hard" else [fmt(*pdiff(arm23(a), arm23("hard")))] + mcn(arm23(a), arm23("hard"))))
 got = []
 for line in open(F + "tab1.tex", encoding="utf-8"):
     if "&" in line and line.rstrip().endswith("\\\\") and not re.search(r"Arm &|multicolumn", line):

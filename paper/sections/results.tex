@@ -3,31 +3,37 @@
 \section{Results}\label{sec:results}
 
 We take the four questions of \cref{fig:questions} in turn.
-\Cref{sec:q1,sec:q2} use Exp~21, \cref{sec:q3} uses Exp~22, and \cref{sec:q4} uses Exp~23 and Exp~16.
+\Cref{sec:q1,sec:q2} use the fork probe, \cref{sec:q3} the fed-blend log, and \cref{sec:q4} the coupled ablation and
+the accuracy comparison.
 
 %-------------------------------------------------------------------------------------------------
 \subsection{Q1: Does a blend of two candidates survive the layers?}\label{sec:q1}
 
 If \ST{} carried two candidates forward, a blend of them would have to survive the forward pass.
-We measure this with the method of \citet{backour2026dynamics}.
+We measure this with the method of Backour~\cite{backour2026dynamics}.
 At each fork we feed $\alpha\,e(A) + (1-\alpha)\,e(B)$ for $\alpha = 0, 0.1, \dots, 1$ from the same cached prefix, % SETUP
 where $A$ is the chosen token and $B$ the runner-up.
-At every layer we project the hidden state onto the line from the state for the pure runner-up to the state for the
-pure chosen token, which gives a position $c(\alpha)$ between 0 and 1.
-Snap is the mean of $|c(\alpha) - \alpha|$, divided by the same quantity for a perfect switch at $\alpha = 0.5$. % SETUP
-A snap of 0 means the blend is carried linearly, and 1 means a clean switch to one candidate.
-On our grid, snap is 1 minus the CALIB score of \citet{backour2026dynamics}.
+Let $h_\ell(\alpha)$ be the hidden state at layer $\ell$ of the fork position when this blend is fed, so that
+$h_\ell(1)$ belongs to the pure chosen token and $h_\ell(0)$ to the pure runner-up.
+We place each blend on the line between the two pure states and compare its position with the mixing weight:
+\begin{align}
+c_\ell(\alpha) &= \frac{\big(h_\ell(\alpha) - h_\ell(0)\big)\cdot\big(h_\ell(1) - h_\ell(0)\big)}
+                       {\lVert h_\ell(1) - h_\ell(0)\rVert^2}, \label{eq:position}\\ % SETUP
+\mathrm{snap}_\ell &= \frac{\sum_\alpha \lvert c_\ell(\alpha) - \alpha\rvert}
+                         {\sum_\alpha \lvert \mathbb{1}[\alpha > 0.5] - \alpha\rvert}, \label{eq:snap} % SETUP
+\end{align}
+with both sums over the 11 values of $\alpha$. % SETUP
+The denominator is the same quantity for a perfect switch at $\alpha = 0.5$, so a snap of 0 means the blend is % SETUP
+carried linearly and 1 means a clean switch to one candidate.
+On our grid, snap is 1 minus the CALIB score of Backour~\cite{backour2026dynamics}.
 At the input the position equals the mixing weight, as it must (largest error $1.5 \times 10^{-7}$). % C21.2
 
 \begin{figure}[t]
 \centering
-\begin{minipage}[c]{3.2in}
 \includegraphics{fig3.pdf}
-\end{minipage}\hfill
-\begin{minipage}[c]{3.1in}
 \caption{Blends collapse gradually through the layers.
 At each fork we feed a blend of the chosen token and the runner-up and measure how sharply each layer
-resolves it (snap: 0 = carried linearly, 1 = clean switch).
+resolves it (snap, \cref{eq:snap}: 0 = carried linearly, 1 = clean switch).
 Snap is 0 at the input by construction and reaches 0.98 (number vs word), 0.84 (number vs number) % C21.4
 and 0.77 (word vs word) at the output. % C21.4
 Number vs word snaps hardest at every layer from 1 to 28; number vs number starts slowest % C21.24
@@ -36,10 +42,9 @@ Bands: 95\% bootstrap CIs over problems.
 670 unique forks from 40 GSM8K problems (items 10--49). % C21.1 C21.3
 Inputs are sweeps between two candidates at forks, not the lopsided blends real runs feed (\cref{sec:q3}).}
 \label{fig:snap}
-\end{minipage}
 \end{figure}
 
-\Cref{fig:snap} shows the result for the 670 unique forks of Exp~21. % C21.1
+\Cref{fig:snap} shows the result for the 670 unique forks of the fork probe. % C21.1
 Snap rises from 0 at the input to between 0.37 and 0.70 at layer 7, % C21.4
 and to between 0.77 and 0.98 at the output. % C21.4
 How far the two candidates differ in kind matters at the output.
@@ -63,13 +68,14 @@ Only partly.
 By the output a 50/50 blend is mostly resolved, and the next token follows one of the two candidates
 at 88 to 98\% of forks. % C21.6
 The collapse is gradual, though: at layer 7 the blend is still far from a clean switch. % C21.4
-Whether the runner-up is lost or only absent from the next-token prediction is the next question.
+Whether information about the runner-up is lost, or only absent from the next-token prediction, is the next question.
 
 %-------------------------------------------------------------------------------------------------
-\subsection{Q2: Is the runner-up stored, and can later text read it back?}\label{sec:q2}
+\subsection{Q2: Does the runner-up persist in the cache?}\label{sec:q2}
 
 The next-token prediction is not the only place a candidate can survive.
-Later steps attend to the keys and values (K,V) of the fork position, so the runner-up could be kept there.
+Later steps attend to the keys and values (K,V) of the fork position, so information about the runner-up could
+persist there and shift what later text predicts.
 We test this at the forks where the model followed the chosen token at the 50/50 input:
 96 number vs number forks from 35 problems and 139 word vs word forks from 40 problems, % C21.28
 plus 34 number vs word forks. % C21.7-8
@@ -88,14 +94,15 @@ The runner-up readback is the control score minus the blend score.
 It is above 0 when the blend cache makes the model read the text more as if it had written the runner-up.
 Positions where $p_A$ and $p_B$ differ by less than 0.05 in total variation are skipped. % SETUP
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \includegraphics{fig4.pdf}
-\caption{The runner-up is stored and can be read back, but stays dormant on the model's own path.
+\caption{Information about the runner-up persists in the cache and shifts later predictions toward it, but not on
+the model's own path.
 At forks where the model followed the chosen token, we force a 64-token continuation into the cache built from % C21.26
 the 50/50 blend and into a control cache (chosen token blended 50/50 with the third-ranked candidate), and score the next-token
 predictions from 0 (as if the runner-up had been written) to 1 (as if the chosen token had).
-Readback = control minus blend; above 0 means the runner-up is read back from the cache.
+Readback = control minus blend; above 0 means the blend cache shifts the projected readout toward the runner-up.
 (a) Per fork: with the runner-up's text, +0.44 (number vs number), +0.11 (number vs word) % C21.7-8
 and +0.33 (word vs word); % C21.7-8
 with the model's own text, $-0.01$ to $+0.06$, with every CI including 0. % C21.9 C21.25
@@ -108,15 +115,18 @@ $n$ = 96, 34 and 139 forks. % C21.7-8
 Exact 50/50 blends are the most favourable case for the runner-up, so these values are likely an upper bound for real forks,
 if readback grows with the residual (\cref{sec:q3}).}
 \label{fig:readback}
-\end{figure}
+\end{figure*}
 
-With the runner-up's text, the blend cache reads it back (\cref{fig:readback}a).
+With the runner-up's text, the blend cache shifts the readout toward the runner-up (\cref{fig:readback}a).
 The readback is $+0.44$ for number vs number (95\% CI [0.35, 0.53]), % C21.7-8
 $+0.33$ for word vs word ([0.27, 0.40]) % C21.7-8
 and $+0.11$ for number vs word ([0.03, 0.19]). % C21.7-8
-The stored runner-up moves the model 0.44 of the way, % C21.7-8
-on number vs number forks, toward reading the text as if it had written the runner-up itself.
-For number vs word the runner-up is mostly erased, but not completely.
+On number vs number forks the blend cache moves the projected readout 0.44 of the way from ``as if the chosen % C21.7-8
+token had been written'' toward ``as if the runner-up had been written''.
+This is a shift in a projected next-token readout.
+It shows that information about the runner-up persists in the cache and reaches later predictions; it does not
+show that the runner-up is held as a separate candidate that the model could retrieve whole.
+For number vs word the trace is mostly erased, but not completely.
 The effect lasts: for number vs number and word vs word the CI stays above 0 in every position bin up to 64 tokens % C21.26
 (\cref{fig:readback}b), and without binning the mean is above 0 at every single position from 1 to 16 % C21.38
 (\cref{fig:readback-unbinned}).
@@ -125,20 +135,20 @@ The readback is $-0.01$ [$-0.06$, 0.04] for number vs number, % C21.9 C21.25
 $+0.02$ [$-0.02$, 0.07] for word vs word % C21.9 C21.25
 and $+0.06$ [$-0.00$, 0.19] for number vs word, % C21.9 C21.25
 and the CI includes 0 in every position bin for number vs number and word vs word. % C21.27
-On the path the model actually takes, the runner-up is dormant.
+On the path the model actually takes, no shift toward the runner-up is detectable.
 These results met pre-registered predictions P3 and P4 (\cref{app:prereg}).
 
-\paragraph{Where the runner-up is stored.}
+\paragraph{Where the runner-up's trace sits.}
 To locate it, we swap only the fork position's keys and values between the blend cache and the control cache,
 at one layer or one block of layers, and force the runner-up's text as before.
 \emph{Remove} puts the control's K,V into the blend cache and asks whether these layers are needed.
 \emph{Insert} puts the blend's K,V into the control cache and asks whether they are enough.
 We report the pooled share of the blend--control readback gap that the swap closes, summed over forks.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \includegraphics{fig5.pdf}
-\caption{The runner-up is stored mostly in the early layers.
+\caption{The cache entries that carry the runner-up's trace are mostly in the early layers.
 At each fork (50/50 blend; forks where the model followed the chosen token) we swap the keys and values of the
 fork position between the blend cache and the control cache at a set of layers, and report the pooled share of
 the blend--control readback gap this closes (summed over forks).
@@ -161,9 +171,9 @@ Error bars: 95\% bootstrap CIs over problems.
 Number vs word is not shown: its gap ($+0.11$) is too small to localise (\cref{tab:fig5-nw}). % C21.7-8
 All shares are measured at exact 50/50 blends, the most favourable case for the runner-up, so these shares are likely an upper bound for real forks.}
 \label{fig:patch}
-\end{figure}
+\end{figure*}
 
-The runner-up is held mostly in layers 0 to 7 (\cref{fig:patch}a,b). % C21.10
+The trace sits mostly in layers 0 to 7 (\cref{fig:patch}a,b). % C21.10
 These layers close a pooled share of 0.77 (remove) and 0.71 (insert) of the gap for number vs number, % C21.10
 and 0.77 and 0.91 for word vs word. % C21.10
 Layers 12 to 27 close 0.12 and 0.26, and 0.08 and 0.14. % C21.11
@@ -185,7 +195,7 @@ although the insert effects of layers 1 and 2 only just do (corrected lower boun
 Second, inside layers 0--3 single layers do not add up to their block. % C21.31
 Removing one layer at a time sums to 0.84 against 0.58 for the block, % C21.31
 and inserting one at a time sums to 0.32 against 0.55. % C21.31
-One reading is that the runner-up is held redundantly across layers 0--2: % C21.29
+One reading is that the trace is held redundantly across layers 0--2: % C21.29
 removing any one of them breaks the readback, but no single one carries it.
 Another is that the readback score saturates, since it is a projection that can pass 1.
 Our data do not separate the two.
@@ -205,10 +215,11 @@ so the runner-up is present there as an echo of the input.
 There is also a small processed trace: for number vs number, layers 7 and 13 stand out (exploratory, as above). % C21.19
 
 \paragraph{Answer.}
-Yes.
-The runner-up is stored, mostly in the keys and values of layers 0 to 7 and partly as an echo of the input, % C21.10
-and text that turns toward it reads it back for the whole 64-token continuation. % C21.26
-On the model's own path it stays dormant.
+Yes, as a trace.
+Information about the runner-up persists, mostly in the keys and values of layers 0 to 7 and partly as an echo of % C21.10
+the input, and text that turns toward the runner-up shifts the projected readout toward it for the whole 64-token % C21.26
+continuation.
+On the model's own path no such shift is detectable.
 All of this is measured at exact 50/50 blends, the most favourable case for the runner-up.
 
 %-------------------------------------------------------------------------------------------------
@@ -216,17 +227,17 @@ All of this is measured at exact 50/50 blends, the most favourable case for the 
 
 \Cref{sec:q1,sec:q2} feed exact 50/50 blends.
 Real runs feed whatever blend the noise produces, so we record it.
-Exp~22 replays ordinary vanilla, Gumbel and Dirichlet runs on 20 problems and logs the pre-noise and the fed weights % C22.7
+The fed-blend log replays ordinary vanilla, Gumbel and Dirichlet runs on 20 problems and logs the pre-noise and the fed weights % C22.7
 at every thinking step.
 Forks make up 9.2\% (vanilla), 13.0\% (Gumbel) and 13.3\% (Dirichlet) of thinking steps. % C22.1 C22.2 C22.3
 There are 3,774, 5,761 and 4,978 forks; each arm is its own run, so the forks differ. % C22.7
 
 \paragraph{The top token of \GST{} is a sampled token.}
 Gumbel noise makes the top token of the fed blend a sample from the filtered distribution.
-This is the Gumbel-max trick \citep{gumbel1954statistical,maddison2014sampling}:
+This is the Gumbel-max trick \cite{gumbel1954statistical,maddison2014sampling}:
 the token with the largest perturbed log-probability is distributed exactly as a draw from the distribution, and the
 softmax at temperature $\tau$ does not change which token is largest.
-\citet{wu2025single} cite the trick to motivate Gumbel-Softmax; we check its consequence in the logged runs.
+Wu et al.~\cite{wu2025single} cite the trick to motivate Gumbel-Softmax; we check its consequence in the logged runs.
 At forks, Gumbel makes a token other than the pre-noise top token the winner at a rate of 0.45, % C22.4
 and ordinary sampling would do so at 0.45 (one minus the pre-noise top weight). % C22.4
 The difference is 0.00 (95\% CI [$-0.01$, 0.02]). % C22.8
@@ -237,7 +248,7 @@ it flips less often, by $-0.03$ [$-0.04$, $-0.02$], and is below sampling in all
 Its winner leans toward the pre-noise top token.
 So Dirichlet \ST{} is not sampling in disguise in the exact sense that \GST{} is.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \includegraphics{fig6.pdf}
 \caption{Noise turns real forks into lopsided blends, and Gumbel's winner is a sample.
@@ -258,7 +269,7 @@ Error bars: 95\% bootstrap CIs over problems.
 3,774 (vanilla), 5,761 (Gumbel) and 4,978 (Dirichlet) forks from 20 GSM8K problems; % C22.7
 each arm is its own run, so the forks differ.}
 \label{fig:fed}
-\end{figure}
+\end{figure*}
 
 \paragraph{The residual is real but small.}
 Before noise, the median fork has a residual of 0.44: the model splits its weight. % C22.12
@@ -281,13 +292,13 @@ of steps; both failed (\cref{app:prereg}).
 At forks the residual is real but small: its median is 0.12, % C22.12
 and at about half of forks the blend is near one token. % C22.11
 The exact 50/50 blends of \cref{sec:q1,sec:q2} are the extreme case, so the storage and readback measured there are
-likely an upper bound on what a real fork carries, if readback grows with the residual.
+likely an upper bound on what a real fork leaves in the cache, if readback grows with the residual.
 
 %-------------------------------------------------------------------------------------------------
 \subsection{Q4: Does the model use the residual?}\label{sec:q4}
 
 If the top token of \GST{} is a sampled token, any difference from sampling must come from the residual.
-Exp~23 isolates it.
+The coupled ablation isolates it.
 Three arms run in lockstep on 100 GSM8K problems never used before (items 50--149), % C23.1
 with shared Gumbel noise keyed by seed, step and token id.
 \emph{Sampling} feeds the top token alone (a one-hot input).
@@ -300,7 +311,7 @@ so the control carries a residual of the same size and a typical norm.
 
 \input{figures/tab1.tex}
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \includegraphics{fig7.pdf}
 \caption{The model reads the residual.
@@ -316,7 +327,7 @@ median 31 steps). % C23.15
 the median problem is 3.9 times (marker: median and 95\% bootstrap CI over problems, [3.1, 5.0]). % C23.15
 Items 50--149, not used in any other experiment; seed 0.} % C23.1
 \label{fig:ablation}
-\end{figure}
+\end{figure*}
 
 \paragraph{The model reads the residual.}
 \ST{} leaves sampling sooner than the \ctrl{} (\cref{fig:ablation}a).
@@ -332,30 +343,54 @@ We chose the median after seeing that the ratio of the means, 5.7, is driven by 
 five problems hold 0.54 of \ST{}'s total, and without them the ratio of means is 3.1. % C23.14
 The pre-registered prediction E1 expected the opposite direction, that the residual would move predictions less than
 a random one (\cref{app:prereg}).
+E1 was written for the KL averaged over each arm's own steps up to and including its first divergence.
+On that registered measure, \ST{} moves predictions less than the control on only 14 of 100 problems % C23.16
+(mean KL 0.545 against 0.009). % C23.16
+That average is dominated by the divergence step itself, and \ST{} diverges sooner, so we report the matched
+steps above, on which \ST{} moves predictions less on 6 of 100. % PR(Exp 23 E1)
+Both measures reject E1 in the same direction.
 
 \paragraph{Accuracy does not change detectably.}
 \Cref{tab:accuracy} compares accuracy.
-In Exp~23, \ST{} solves 88 of 100 problems and sampling 86. % C23.1
+In the coupled ablation, \ST{} solves 88 of 100 problems and sampling 86. % C23.1
 The discordant pairs split 6 to 4 (McNemar $p = 0.754$), % C23.2
-and the two arms reach the same final answer on 84 problems. % C23.2
-The \ctrl{} solves 82 (3 to 7 against sampling, $p = 0.344$), % C23.1 C23.3
-and it also reaches sampling's final answer on 84 problems. % C23.3
-So the real residual changes the final answer no more often than a random one.
-In Exp~16, on different problems (items 0--29), \GST{} and sampling both solve 52 of 60 runs; % C16.1 C16.3
-on seed 0, \GST{} alone is right on 1 problem and sampling alone on 2 ($p = 1.00$). % C16.12
-Vanilla \ST{} shows the Greedy Pitfall of \citet{wu2025single} in its behaviour:
+and the paired difference is $+2$ points with a 95\% CI of [$-5$, $+9$]. % C23.17
+The data are compatible with \GST{} being up to 5 points worse or up to 9 points better than sampling on these % C23.17
+problems, so the null is an absence of evidence at this size, not evidence of no effect.
+The \ctrl{} solves 82 (3 to 7 against sampling, $p = 0.344$; difference $-4$ points [$-11$, $+3$]). % C23.1 C23.3 C23.17
+The pre-registered prediction E2 (no detectable accuracy difference, judged on the point estimate) was met.
+
+\paragraph{Real against random residual, paired.}
+Each residual arm reaches sampling's final answer on 84 problems, % C23.2 C23.3
+but equal counts do not show that the two arms change answers on the same problems, so we pair them directly.
+They change sampling's final answer together on 10 problems, \ST{} alone on 6 and the control alone on 6 % C23.18
+(McNemar $p = 1.00$), and they reach the same final answer as each other on 85. % C23.18
+Most answer changes therefore happen on problems that are fragile under any residual, and the real residual does
+not change more answers than a random one.
+Where the two arms differ in correctness, \ST{} is right on 9 problems and the control on 3 % C23.19
+($p = 0.146$; difference $+6$ points, 95\% CI [$-1$, $+13$]). % C23.19
+This is not significant, but it is the largest contrast in the study, and its interval leaves room for an effect
+of the residual's content of up to 13 points; part of it is the control's own deficit against sampling. % C23.19
+
+\paragraph{A second, smaller accuracy test.}
+In the accuracy comparison, on different problems (items 0--29), \GST{} and sampling both solve 52 of 60 runs. % C16.1 C16.3
+The 60 runs are two seeds of the same 30 problems, and \GST{}'s two seeds are right on exactly the same problems, % C16.15 C16.14
+so we treat problems, not runs, as the unit.
+Per seed, sampling solves 27 and 25 of 30 and \GST{} 26 and 26. % C16.14 C16.15
+Bootstrapped over problems, the intervals are [0.75, 0.97] for sampling and [0.73, 0.97] for \GST{}, % C16.15
+and the mean per-problem difference is 0.00 [$-0.10$, $+0.10$]. % C16.15
+On seed 0, \GST{} alone is right on 1 problem and sampling alone on 2 ($p = 1.00$). % C16.12
+Vanilla \ST{} shows the Greedy Pitfall of Wu et al.~\cite{wu2025single} in its behaviour:
 14 of its 30 runs end in Cold Stop, a repetition loop, % C16.2
 and all of its 5 runs without an answer are among them. % C16.2 C16.8
 \GST{} never hits Cold Stop, % C16.3
 and sampling and \GST{} solve 4 of those 5 problems in every run. % C16.9
-Vanilla's accuracy (22 of 30) is lower, but the difference is not significant at this size % C16.2
-($p = 0.062$ against sampling, $p = 0.22$ against Gumbel). % C16.13 C16.5
-These tests are small.
-With only 6 and 4 discordant problems in Exp~23, an effect of a few points in either direction cannot be excluded. % C23.2
-The pre-registered prediction E2 (no detectable accuracy difference, judged on the point estimate) was met.
+Vanilla's accuracy (22 of 30) is lower by 17 points on seed 0 (95\% CI [$-33$, $-1$]), but the exact McNemar test % C16.2 C16.16
+does not reject equality ($p = 0.062$ against sampling, $p = 0.22$ against Gumbel), so we treat it as borderline. % C16.13 C16.5
 
 \paragraph{Answer.}
 The model reads the residual: it moves next-token predictions a median 3.9 times as much as a random residual of the % C23.15
 same size, and it makes \ST{} leave sampling sooner.
-Yet accuracy does not change detectably, and the real residual changes final answers no more often than a random one.
-The residual is read but, within the power of our test, not used.
+Yet accuracy does not change detectably, and paired by problem, the real residual changes sampling's final answer
+on the same number of problems as a random one, mostly the same problems.
+At the token level, the residual is read but, within the power of our test, not used.

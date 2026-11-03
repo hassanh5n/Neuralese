@@ -63,6 +63,32 @@ def wilson(k, n, z=1.959964):  # Wilson score 95% CI for a proportion
     return round(c - h, 2), round(c + h, 2)
 
 
+def newcombe(a, b, c, d):  # paired difference p1 - p2 (a both, b arm 1 only, c arm 2 only, d neither); Newcombe (1998) hybrid score
+    n = a + b + c + d
+    p1, p2 = (a + b) / n, (a + c) / n
+    (l1, u1), (l2, u2) = wilson_raw(a + b, n), wilson_raw(a + c, n)
+    num, den = a * d - b * c, sqrt((a + b) * (c + d) * (a + c) * (b + d))
+    if num > 0:
+        num = max(num - n / 2, 0)
+    phi = num / den if den else 0.0
+    lo = p1 - p2 - sqrt((p1 - l1) ** 2 - 2 * phi * (p1 - l1) * (u2 - p2) + (u2 - p2) ** 2)
+    hi = p1 - p2 + sqrt((u1 - p1) ** 2 - 2 * phi * (u1 - p1) * (p2 - l2) + (p2 - l2) ** 2)
+    return round(p1 - p2, 2), round(lo, 2), round(hi, 2)
+
+
+def wilson_raw(k, n, z=1.959964):
+    p, d = k / n, 1 + z * z / n
+    c, h = (p + z * z / (2 * n)) / d, z * sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return c - h, c + h
+
+
+def cells(rs, x, y):  # 2x2 paired table of correctness for arms x and y
+    a = sum(r[x]["correct"] and r[y]["correct"] for r in rs)
+    b = sum(r[x]["correct"] and not r[y]["correct"] for r in rs)
+    c = sum(r[y]["correct"] and not r[x]["correct"] for r in rs)
+    return a, b, c, len(rs) - a - b - c
+
+
 # ---------------- Exp 16: GSM8K accuracy, items 0-29 ----------------
 e16 = rows("exp16/gsm8k_eval.jsonl")
 arm = lambda n: [r for r in e16 if r["noise"] == n]
@@ -90,6 +116,22 @@ for cid, arm_s0, want in (("C16.12", g0, (1, 2, 1.0)), ("C16.13", v, (0, 5, 0.06
     only_arm = sum(arm_s0[i] and not d0[i] for i in d0)
     only_samp = sum(d0[i] and not arm_s0[i] for i in d0)
     check(cid, want, (only_arm, only_samp, round(sign_p(only_arm, only_samp), 3)))
+
+# Exp 16 runs are clustered by problem (two seeds of the same 30 problems): per-seed counts and problem-clustered CIs.
+check("C16.14", ((27, 25), (26, 26), 0), (tuple(sum(r["correct"] for r in e16 if r["noise"] == "discrete" and r["seed"] == s) for s in (0, 1)),
+                                         tuple(sum(r["correct"] for r in e16 if r["noise"] == "gumbel" and r["seed"] == s) for s in (0, 1)),
+                                         sum(len({r["correct"] for r in arm("gumbel") if r["item"] == i}) > 1 for i in range(30))))
+per = {n: [{"item": i, "acc": mean(r["correct"] for r in arm(n) if r["item"] == i)} for i in range(30)] for n in ("discrete", "gumbel")}
+dif = [{"item": i, "acc": per["gumbel"][i]["acc"] - per["discrete"][i]["acc"]} for i in range(30)]
+check("C16.15", ((0.75, 0.97), (0.73, 0.97), (0.0, -0.1, 0.1)),
+      (boot(per["discrete"], lambda rs: mean(r["acc"] for r in rs)), boot(per["gumbel"], lambda rs: mean(r["acc"] for r in rs)),
+       (round(mean(r["acc"] for r in dif), 2), *boot(dif, lambda rs: mean(r["acc"] for r in rs)))))
+
+s0c = lambda nz: {r["item"]: r["correct"] for r in e16 if r["noise"] == nz and r["seed"] == 0}
+vs = (sum(s0c(None)[i] and s0c("discrete")[i] for i in range(30)), sum(s0c(None)[i] and not s0c("discrete")[i] for i in range(30)),
+      sum(s0c("discrete")[i] and not s0c(None)[i] for i in range(30)))
+check("C16.16", (-0.17, -0.33, -0.01), newcombe(*vs, 30 - sum(vs)))
+
 
 # ---------------- Exp 21: replication of the fork measurements, items 10-49 ----------------
 sw = rows("exp21/step4_alpha_sweep_items10-49.jsonl")
@@ -298,6 +340,19 @@ e23r = [dict(r, ratio=a / b) for r, a, b in zip(e23, ms, mr)]
 lo23, hi23 = boot(e23r, lambda rs: median(r["ratio"] for r in rs))
 check("C23.15", (3.9, (3.1, 5.0), 31), (round(median(r["ratio"] for r in e23r), 1), (round(lo23, 1), round(hi23, 1)),
                                        median(min(r["flip"]["soft"], r["flip"]["rand"]) for r in e23)))
+# E1 as registered: KL averaged over each arm's own steps up to and including its first divergence.
+own_s, own_r = [mean(r["kl"]["soft"]) for r in e23], [mean(r["kl"]["rand"]) for r in e23]
+less = sum(s < q for s, q in zip(own_s, own_r))
+check("C23.16", (14, 0.545, 0.009), (less, round(mean(own_s), 3), round(mean(own_r), 3)))
+# Paired accuracy difference vs sampling with a 95% CI (Newcombe hybrid score for paired proportions).
+check("C23.17", ((0.02, -0.05, 0.09), (-0.04, -0.11, 0.03)), (newcombe(*cells(e23, "soft", "hard")), newcombe(*cells(e23, "rand", "hard"))))
+# Direct paired comparison of the two residual arms: do they change sampling's final answer on the same problems?
+sc = [r["soft"]["answer_num"] != r["hard"]["answer_num"] for r in e23]
+rc = [r["rand"]["answer_num"] != r["hard"]["answer_num"] for r in e23]
+tab = (sum(a and b for a, b in zip(sc, rc)), sum(a and not b for a, b in zip(sc, rc)), sum(b and not a for a, b in zip(sc, rc)))
+check("C23.18", ((10, 6, 6, 78), 1.0, 85), ((*tab, 100 - sum(tab)), sign_p(tab[1], tab[2]), sum(r["soft"]["answer_num"] == r["rand"]["answer_num"] for r in e23)))
+sr = cells(e23, "soft", "rand")
+check("C23.19", ((9, 3), 0.146, (0.06, -0.01, 0.13)), ((sr[1], sr[2]), round(sign_p(sr[1], sr[2]), 3), newcombe(*sr)))
 check("C23.9", ((0.80, 0.93), (0.78, 0.91), (0.73, 0.88)), tuple(wilson(k, 100) for k in (88, 86, 82)))  # soft / hard / rand
 # Embedding-norm check (neuralese_exp23_norms.py, Kaggle T4): is `rand` a fair control?
 nj = json.load(open(R + "exp23/exp23_embedding_norms.json"))

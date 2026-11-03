@@ -3,18 +3,22 @@
 We study one model, DeepSeek-R1-Distill-Qwen-1.5B, on one task, GSM8K, mostly with one seed. % SETUP
 Larger models or harder tasks may use the residual where this model does not.
 Accuracy on GSM8K is near ceiling for this model, which leaves little room for the residual to help.
-The accuracy comparison has low power: Exp~23 has only 6 and 4 discordant problems, so effects of a few points % C23.2
-in either direction cannot be excluded, and our null result is an absence of evidence at this size.
-The storage results (\cref{sec:q1,sec:q2}) use exact 50/50 blends at forks where the model followed the chosen
+The accuracy tests have low power: the coupled ablation has only 6 and 4 discordant problems, and its paired % C23.2
+interval allows differences from 5 points below sampling to 9 points above, so our null result is an absence of % C23.17
+evidence at this size.
+Our tests are at the level of single token positions.
+We do not test whether the model carries whole reasoning paths in superposition across many steps, and every blend
+we study is a forced superposition built at the input, not a learned one \cite{rizvimartel2026illusion}.
+The cache results (\cref{sec:q1,sec:q2}) use exact 50/50 blends at forks where the model followed the chosen
 token, the most favourable case for the runner-up.
 Real Gumbel forks feed a median residual of 0.12, so these results are likely an upper bound on what real runs carry, % C22.12
 if readback grows with the residual; we did not measure readback at realistic weights.
 The readback and snap scores are projections onto the line between two pure states, so they can saturate or pass 1;
 this is one of two readings of the non-additivity inside layers 0--3. % C21.31
 The single-layer patching results are exploratory and were found after looking at the data.
-The experiments are not independent samples of problems: Exp~22 uses a subset of Exp~21's problems and overlaps
-Exp~16.
+The experiments are not independent samples of problems: the fed-blend log uses a subset of the fork probe's
+problems and overlaps the accuracy comparison.
 Our Dirichlet noise uses $\gamma = 1.0$, % SETUP
-while \citet{wu2025single} use 4.0 by default, so our Dirichlet result may not transfer to their setting. % CITE(wu2025single)
-Finally, our decoding settings differ from those of \citet{wu2025single} (top-$k$, thinking budget, Cold Stop); they
+while Wu et al.~\cite{wu2025single} use 4.0 by default, so our Dirichlet result may not transfer to their setting. % CITE(wu2025single)
+Finally, our decoding settings differ from those of Wu et al.~\cite{wu2025single} (top-$k$, thinking budget, Cold Stop); they
 are matched across our own arms, but our absolute accuracies are not comparable with theirs.

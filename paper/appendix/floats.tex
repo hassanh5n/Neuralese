@@ -1,0 +1,94 @@
+% Appendix floats, declared together at the start of the appendix so they fill page tops in order
+% (two-column floats can only go at the top of a page; declared later, they drift past the text).
+\begin{table*}[t]
+\centering
+\small
+\caption{Pre-registered predictions, as written, with their outcomes.
+Fork probe: GSM8K items 10--49; fed-blend log: items 10--29; coupled ablation: items 50--149. % SETUP
+nn = number vs number, ww = word vs word.}
+\label{tab:prereg}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llll@{}}
+\toprule
+& Prediction as written & Observed & Met \\
+\midrule
+\multicolumn{4}{@{}l}{\emph{Fork probe: collapse, cache trace, location (commit \texttt{7d41cd4})}} \\
+P1 & nn final-layer snap $\geq 0.6$ (0.66 rescaled) & 0.84 & yes \\ % PR(P1) SETUP
+P2 & 50/50 input: next token is pure A's or B's at $\geq$ 85\% of nn forks & 95\% & yes \\ % PR(P2)
+P3 & Runner-up's text: readback CI lower bound $> 0$, nn and ww & 0.35, 0.27 & yes \\ % PR(P3)
+P4 & Own text: $|$readback$| < 0.1$, nn and ww & 0.01, 0.02 & yes \\ % PR(P4)
+P5 & Layers 0--7 close $\geq$ 50\% of the gap (remove, insert; nn, ww) & smallest 0.71 & yes \\ % PR(P5)
+P6 & Layers 0--7 minus 12--27: CI lower bound $> 0$ (same four cases) & smallest 0.31 & yes \\ % PR(P6)
+\addlinespace
+\multicolumn{4}{@{}l}{\emph{Fed-blend log (commit \texttt{d2e770f})}} \\
+P1 & Gumbel: fed top weight $\geq 0.9$ at $\geq$ 70\% of forks & 47\% & no \\ % PR(Exp 22 P1)
+P2 & Dirichlet: same, $\geq$ 70\% of forks & 37\% & no \\ % PR(Exp 22 P1)
+P3 & Gumbel: fed top weight $\geq 0.9$ at $\geq$ 90\% of all thinking steps & 85\% & no \\ % PR(Exp 22 P3)
+A1 & Gumbel: fed top weight $\geq 0.9$ at 35--65\% of forks & 47\% & yes \\ % PR(Exp 22 A1) SETUP
+A2 & Dirichlet: fed top weight $\geq 0.9$ at 25--60\% of forks & 37\% & yes \\ % PR(Exp 22 A1) SETUP
+A3 & Gumbel flip rate within 0.05 of the sampling rate & 0.45 vs 0.45 & yes \\ % PR(Exp 22 A3)
+\addlinespace
+\multicolumn{4}{@{}l}{\emph{Coupled ablation (commit \texttt{d2e770f})}} \\
+E1 & \ST{} moves predictions less than the random residual on most problems & 14 of 100$^{a}$ & no \\ % PR(Exp 23 E1)
+E2 & \ST{} vs sampling: McNemar $p > 0.05$ and accuracy difference $\leq$ 5 points & $p = 0.754$, 2 points & yes \\ % PR(Exp 23 E2)
+\bottomrule
+\end{tabular}\\[2pt]
+{\footnotesize $^{a}$ As registered: KL over each arm's own steps; 6 of 100 on matched steps (\cref{sec:q4}).} % PR(Exp 23 E1)
+\end{table*}
+
+\input{figures/tabA1.tex}
+\input{figures/tabA2.tex}
+\input{figures/tabA3.tex}
+
+\begin{figure*}[t]
+\centering
+\includegraphics{figA1.pdf}
+\caption{Readback at each position of the forced text, without the binning of \cref{fig:readback}b--c.
+Top: mean readback (control minus blend) with 95\% bootstrap CIs over problems, for the runner-up's text
+(left) and the model's own text (right).
+Bottom: number of forks with a defined score at that position (positions where the chosen token and the runner-up
+barely differ are skipped).
+With the runner-up's text, the mean stays above 0 at every position for number vs number and word vs word; % C21.38
+with the model's own text it stays around 0.
+Single positions hold few forks, so their CIs are wide; this is why \cref{fig:readback} pools positions into
+log-spaced bins.}
+\label{fig:readback-unbinned}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics{figA2.pdf}
+\caption{Per-fork shares behind the pooled bars of \cref{fig:patch}, for layer 0 and layers 0--3. % C21.31
+Each dot is one fork with a blend--control gap of at least 0.1 % C21.32
+(78 number vs number forks, 108 word vs word); % C21.32
+filled = remove, open = insert.
+Black bar: median per fork.
+Diamond: pooled share, as plotted in \cref{fig:patch}.
+For number vs number, layer 0 is uneven across forks: half of them have a remove
+share below 0.12 and a quarter are above 0.68, % C21.39
+so the pooled 0.38 sits well above the median fork % C21.34
+(0.12; insert: 0.16 vs 0.02). % C21.34
+For layers 0--3 the median fork is close to the pooled share. % C21.31
+Dots outside the axis range are drawn at its edge as triangles.}
+\label{fig:perfork}
+\end{figure*}
+
+\begin{table*}[t]
+\centering
+\footnotesize
+\caption{Experiments, scripts and saved outputs (under \texttt{results/}; seed 0 unless stated).}\label{tab:repro}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Experiment & Question & Items & Script & Saved output \\
+\midrule
+Accuracy comparison & Accuracy & 0--29 & \texttt{neuralese\_eval.py} & \texttt{exp16/gsm8k\_eval.jsonl} \\ % C16.1
+Fork probe & Q1 snap & 10--49 & \texttt{neuralese\_sweep.py} & \texttt{exp21/step4\_alpha\_sweep\_*.jsonl} \\ % C21.1
+Fork probe & Q2 readback & 10--49 & \texttt{neuralese\_kv\_carryover.py} & \texttt{exp21/step5\_kv\_carryover\_*.jsonl} \\ % C21.1
+Fork probe & Q2 patching & 10--49 & \texttt{neuralese\_kv\_patch.py} & \texttt{exp21/step5\_kv\_patch\_*.jsonl} \\ % C21.1
+Fed-blend log & Q3 fed blends & 10--29 & \texttt{neuralese\_mixtures.py} & \texttt{exp22/exp22\_mixtures\_*.jsonl} \\ % C22.1
+Coupled ablation & Q4 ablation & 50--149 & \texttt{neuralese\_residual\_ablation.py} & \texttt{exp23/exp23\_residual\_ablation\_*.jsonl} \\ % C23.1
+Coupled ablation & Norm check & 50--54 & \texttt{neuralese\_exp23\_norms.py} & \texttt{exp23/exp23\_embedding\_norms.json} \\ % C23.10
+\bottomrule
+\end{tabular}
+\end{table*}

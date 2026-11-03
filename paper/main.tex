@@ -1,0 +1,56 @@
+% IEEE conference version (IEEE Conference Template v1.0, 2026/10/15). Build: ./build.sh
+% Modes: add [doubleanonymous] or [singleanonymous] for review (adds line numbers); default is camera-ready.
+% Requires the official ieeeconf.cls v1.0. The ieeeconf.cls in this folder is a preview stand-in (see its header).
+\documentclass[9pt]{ieeeconf}
+
+%% Packages (from the template, then the ones this paper needs).
+\usepackage{bm}
+\usepackage{etoolbox}
+\usepackage{siunitx}
+\robustify\bfseries
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,decorations.pathreplacing}
+\usepackage[capitalize,nameinlink]{cleveref}
+\crefname{equation}{}{}
+\Crefname{equation}{Equation}{Equations}
+\crefname{appendix}{Appendix}{Appendices}
+\Crefname{appendix}{Appendix}{Appendices}
+
+\graphicspath{{figures/}}
+
+%% Paper terms. Use these macros so a rename is one edit.
+\newcommand{\ST}{Soft Thinking}
+\newcommand{\GST}{Gumbel Soft Thinking}
+\newcommand{\ctrl}{random-residual control}
+
+\title{Superposition or Sampling in Disguise?\\What Soft Thinking Stores, Feeds and Uses}
+
+\addauthor{Hassan Nafees}{1}
+\addaffiliation{1}{Department of Computer Science, FAST National University of Computer and Emerging Sciences, Karachi, Pakistan\\\texttt{k230769@nu.edu.pk}}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/abstract.tex}
+\input{sections/introduction.tex}
+\input{sections/related.tex}
+\input{sections/setup.tex}
+\input{sections/results.tex}
+\input{sections/discussion.tex}
+\input{sections/limitations.tex}
+\input{sections/conclusion.tex}
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\appendix
+\input{appendix/prereg.tex}
+\input{appendix/robustness.tex}
+\input{appendix/normcheck.tex}
+\input{appendix/repro.tex}
+\input{appendix/aiuse.tex}
+
+\end{document}

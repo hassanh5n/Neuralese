@@ -1,7 +1,9 @@
 \section{Conclusion}\label{sec:conclusion}
 
 \GST{} feeds a sampled token plus a residual.
-In a 1.5B reasoning model on GSM8K, the model stores the runner-up, mostly in early-layer keys and values, and reads the % SETUP
-residual, but accuracy does not change detectably.
-In accuracy \GST{} at this scale behaves like sampling, although internally the residual is not ignored.
-Testing larger and trained models with the same coupled ablation is the clearest next step.
+In a 1.5B reasoning model on GSM8K, we tested whether that residual acts as a token-level superposition. % SETUP
+A trace of the runner-up persists, mostly in early-layer keys and values, and the model reads the residual, but
+accuracy does not change detectably and the real residual changes answers no more often than a random one.
+The superposition is present and read, but we find no evidence that it is used.
+Testing learned superposition in trained models, and superposition of whole reasoning paths, with the same
+shared-noise control is the clearest next step.

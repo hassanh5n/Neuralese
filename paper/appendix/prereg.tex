@@ -3,60 +3,30 @@
 We committed predictions with numeric thresholds to our git repository before each run.
 Git dates are set by the local machine, so they show the order of commits, not an external timestamp; the Kaggle
 notebook version times give a second record.
-The record below lists every prediction as written and its outcome, including the ones that failed.
+\Cref{tab:prereg} lists every prediction as written and its outcome, including the ones that failed.
 
-\textbf{Exp~21} (P1--P6) was committed on 7 October 2026 (commit \texttt{7d41cd4}), before any Exp~21 result. % SETUP
+\textbf{Fork probe} (P1--P6) was committed on 7 October 2026 (commit \texttt{7d41cd4}), before any of its results. % SETUP
 The thresholds were set on a 10-item pilot (items 0--9) and tested on 40 held-out items (10--49). % SETUP
 The pilot's raw outputs were not saved, so we report no pilot numbers.
 P1 was written as ``snap $\geq 0.6$'' before we rescaled snap so that a perfect switch scores 1; % PR(P1) SETUP
 on the rescaled measure the same threshold is 0.66, and P1 is met on both scales. % PR(P1)
 
-\textbf{Exp~22} (P1--P3) and \textbf{Exp~23} (E1, E2) were committed on 10 October 2026 (commit \texttt{d2e770f}), % SETUP
+\textbf{Fed-blend log} (P1--P3) and \textbf{coupled ablation} (E1, E2) were committed on 10 October 2026 (commit \texttt{d2e770f}), % SETUP
 before either experiment was run.
-After writing P1--P3 but before running Exp~22, we derived the distribution of the fed top weight in closed form.
+After writing P1--P3 but before running the fed-blend log, we derived the distribution of the fed top weight in closed form.
 It showed that a 50/50 fork gives a fed top weight of at least 0.9 with probability 0.50 under Gumbel noise, and a % C22.6
 75/25 fork with probability 0.60, so P1 and P2 could not reach their 70\% thresholds. % C22.6 PR(Exp 22 P1)
 We kept P1 and P2 as written and added A1--A3 in the same commit, again before running.
 
-\begin{center}
-\small
-\textbf{Pre-registered predictions, as written, with their outcomes.}\\[2pt]
-Exp~21: GSM8K items 10--49; Exp~22: items 10--29; Exp~23: items 50--149. % SETUP
-nn = number vs number, ww = word vs word.\\[4pt]
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}llll@{}}
-\toprule
-& Prediction as written & Observed & Met \\
-\midrule
-\multicolumn{4}{@{}l}{\emph{Exp~21: collapse, storage, location (commit \texttt{7d41cd4})}} \\
-P1 & nn final-layer snap $\geq 0.6$ (0.66 rescaled) & 0.84 & yes \\ % PR(P1) SETUP
-P2 & 50/50 input: next token is pure A's or B's at $\geq$ 85\% of nn forks & 95\% & yes \\ % PR(P2)
-P3 & Runner-up's text: readback CI lower bound $> 0$, nn and ww & 0.35, 0.27 & yes \\ % PR(P3)
-P4 & Own text: $|$readback$| < 0.1$, nn and ww & 0.01, 0.02 & yes \\ % PR(P4)
-P5 & Layers 0--7 close $\geq$ 50\% of the gap (remove, insert; nn, ww) & smallest 0.71 & yes \\ % PR(P5)
-P6 & Layers 0--7 minus 12--27: CI lower bound $> 0$ (same four cases) & smallest 0.31 & yes \\ % PR(P6)
-\addlinespace
-\multicolumn{4}{@{}l}{\emph{Exp~22: fed blends (commit \texttt{d2e770f})}} \\
-P1 & Gumbel: fed top weight $\geq 0.9$ at $\geq$ 70\% of forks & 47\% & no \\ % PR(Exp 22 P1)
-P2 & Dirichlet: same, $\geq$ 70\% of forks & 37\% & no \\ % PR(Exp 22 P1)
-P3 & Gumbel: fed top weight $\geq 0.9$ at $\geq$ 90\% of all thinking steps & 85\% & no \\ % PR(Exp 22 P3)
-A1 & Gumbel: fed top weight $\geq 0.9$ at 35--65\% of forks & 47\% & yes \\ % PR(Exp 22 A1) SETUP
-A2 & Dirichlet: fed top weight $\geq 0.9$ at 25--60\% of forks & 37\% & yes \\ % PR(Exp 22 A1) SETUP
-A3 & Gumbel flip rate within 0.05 of the sampling rate & 0.45 vs 0.45 & yes \\ % PR(Exp 22 A3)
-\addlinespace
-\multicolumn{4}{@{}l}{\emph{Exp~23: coupled ablation (commit \texttt{d2e770f})}} \\
-E1 & \ST{} moves predictions less than the random residual on most problems & on 6 of 100 & no \\ % PR(Exp 23 E1)
-E2 & \ST{} vs sampling: McNemar $p > 0.05$ and accuracy difference $\leq$ 5 points & $p = 0.754$, 2 points & yes \\ % PR(Exp 23 E2)
-\bottomrule
-\end{tabular}
-\end{center}
-
 Two predictions failed in an informative way.
-Exp~22 P3 expected near one-token blends at 90\% of all thinking steps; Gumbel reached 85\%. % PR(Exp 22 P3)
+Fed-blend log P3 expected near one-token blends at 90\% of all thinking steps; Gumbel reached 85\%. % PR(Exp 22 P3)
 E1 expected the residual to move predictions less than a random residual, as it would if the model ignored the
 residual; the result went the other way (\cref{sec:q4}).
-E1 was written for the KL averaged over each arm's own steps before its first divergence; we report the KL over
-steps matched across arms, because the first measure is dominated by the divergence step itself.
+E1 was written for the KL averaged over each arm's own steps up to and including its first divergence, and the
+table reports it on that measure: \ST{} moved predictions less on 14 of 100 problems (mean KL 0.545 against % C23.16
+0.009). % C23.16
+In the main text we report the KL over steps matched across arms, because the registered measure is dominated by the
+divergence step itself; on matched steps \ST{} moved predictions less on 6 of 100. % PR(Exp 23 E1)
 The verdict is the same under both measures.
 One summary statistic was also chosen after seeing the data: we report the median per-problem KL ratio (3.9) % C23.15
 because the ratio of means (5.7) turned out to be driven by five problems (\cref{sec:q4}). % C23.14

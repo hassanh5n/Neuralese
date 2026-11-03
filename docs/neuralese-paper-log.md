@@ -5,7 +5,7 @@ Created 2026-10-17 by merging `neuralese-research-log.md` (Exp 1–8, literature
 and in git; they remain the lab notebook. **This file is the paper's source of truth.**
 
 **The rule.** A number may appear in the paper only if it has a row in the claim ledger (§2) and
-`python verify_claims.py` recomputes it from `results/`. Status on 2026-10-26: **110/110 checks pass** (16 added on 2026-10-22 for numbers quoted in §3 and §5, no value changed; 4 added on 2026-10-26 for the Exp 23 embedding-norm check; 2 added on 2026-10-26 for the snap order by layer in Fig 2; 3 added on 2026-10-26 for the readback CIs in Fig 3; 5 added on 2026-10-26 for the single-layer patching in Fig 4; 6 added on 2026-10-26 for Fig 5; 2 added on 2026-10-26 for the KL ratio in Fig 6; 2 added on 2026-10-26 for the McNemar tests vs sampling in Table 1). Robustness checks for Fig 4 and the appendix (C21.32–C21.40) run in `python verify_robustness.py`: **17/17 pass**; it also checks every cell of `figures/tabA1–A3.tex` and `figures/tab1.tex` (Tab1a–b, added 2026-10-26).
+`python verify_claims.py` recomputes it from `results/`. Status on 2026-10-26: **110/110 checks pass** (2026-11-03: 6 rows added, C16.14–15 and C23.16–19, from saved outputs; all pass) (16 added on 2026-10-22 for numbers quoted in §3 and §5, no value changed; 4 added on 2026-10-26 for the Exp 23 embedding-norm check; 2 added on 2026-10-26 for the snap order by layer in Fig 2; 3 added on 2026-10-26 for the readback CIs in Fig 3; 5 added on 2026-10-26 for the single-layer patching in Fig 4; 6 added on 2026-10-26 for Fig 5; 2 added on 2026-10-26 for the KL ratio in Fig 6; 2 added on 2026-10-26 for the McNemar tests vs sampling in Table 1). Robustness checks for Fig 4 and the appendix (C21.32–C21.40) run in `python verify_robustness.py`: **17/17 pass**; it also checks every cell of `figures/tabA1–A3.tex` and `figures/tab1.tex` (Tab1a–b, added 2026-10-26).
 Numbers in §6–§8 are history and must not be copied into the paper.
 
 > **Figure renumbering, 2026-10-26 (Hassan).** The four-questions figure is Fig 2. Entries written before this note
@@ -60,6 +60,9 @@ CIs are 95% bootstrap over problems unless marked. Model: DeepSeek-R1-Distill-Qw
 | C16.11 | Wilson 95% CI: 52/60 (discrete, Gumbel); 22/30 (vanilla) | [0.76, 0.93]; [0.56, 0.86] | exp16 |
 | C16.12 | Gumbel vs discrete, seed 0, paired McNemar *(added 2026-10-26, Table 1)* | Gumbel only 1, discrete only 2, p = 1.00 | exp16 |
 | C16.13 | Vanilla vs discrete, seed 0, paired McNemar *(added 2026-10-26, Table 1)* | vanilla only 0, discrete only 5, p = 0.062 | exp16 |
+| C16.14 | Per-seed accuracy: sampling seed 0 / 1; Gumbel seed 0 / 1; problems where Gumbel's two seeds disagree *(added 2026-11-03)* | 27 / 25; 26 / 26; 0 | exp16 |
+| C16.15 | Problem-clustered 95% CI (bootstrap over the 30 problems, per-problem accuracy over both seeds): sampling; Gumbel; Gumbel − sampling *(added 2026-11-03, replaces the run-level Wilson CI for 60 runs)* | [0.75, 0.97]; [0.73, 0.97]; 0.00 [−0.10, 0.10] | exp16 |
+| C16.16 | Vanilla − sampling, seed 0, paired, Newcombe hybrid-score 95% CI *(added 2026-11-03, Table 1)* | −0.17 [−0.33, −0.01] | exp16 |
 | C21.1 | Forks found / unique, items 10–49 | 694 / 670 | exp21/step4_alpha_sweep_items10-49.jsonl |
 | C21.2 | Layer-0 check: c(α) = α at the embedding | max error 1.5e-7 | exp21 step4 |
 | C21.3 | Forks per kind | num-num 238 (40 problems), num-word 56 (24), word-word 376 (40) | exp21 step4 |
@@ -120,6 +123,10 @@ CIs are 95% bootstrap over problems unless marked. Model: DeepSeek-R1-Distill-Qw
 | C23.9 | Wilson 95% CI: soft 88, hard 86, rand 82 of 100 | [0.80, 0.93], [0.78, 0.91], [0.73, 0.88] | exp23 |
 | C23.14 | Matched-step KL: ratio of means soft / rand; top 5 problems' share of soft's total; ratio of means without them | 5.7; 0.54; 3.1 | exp23 |
 | C23.15 | Matched-step KL: median per-problem ratio soft / rand, 95% CI over problems; median matched steps per problem | 3.9 [3.1, 5.0]; 31 | exp23 |
+| C23.16 | E1 as registered: per-item KL averaged over each arm's own steps up to and including its first flip; soft < rand on; mean soft / rand *(added 2026-11-03)* | 14/100; 0.545 / 0.009 | exp23 |
+| C23.17 | Paired accuracy difference vs hard, Newcombe hybrid-score 95% CI: soft − hard; rand − hard *(added 2026-11-03)* | +0.02 [−0.05, +0.09]; −0.04 [−0.11, +0.03] | exp23 |
+| C23.18 | Soft vs rand, paired: final answer differs from hard's for both / soft only / rand only / neither; McNemar on soft only vs rand only; soft and rand same final answer *(added 2026-11-03)* | 10 / 6 / 6 / 78; p = 1.00; 85/100 | exp23 |
+| C23.19 | Soft vs rand accuracy, paired: soft only / rand only; McNemar; difference, Newcombe 95% CI *(added 2026-11-03)* | 9 / 3; p = 0.146; +0.06 [−0.01, +0.13] | exp23 |
 | C23.10 | Median embedding norm: all real-token rows / the 8,192 random rows Exp 23 drew / same, usage-weighted / reasoning tokens (sampled CoT, items 50–54) | 1.195 / 1.195 / 1.196 / 1.202 | exp23/exp23_embedding_norms.json |
 | C23.11 | Random rows ÷ reasoning tokens, median / mean | 0.994 / 0.961 | exp23 norms |
 | C23.12 | 10th percentile: random rows / reasoning tokens | 0.897 / 1.058 | exp23 norms |
@@ -159,7 +166,7 @@ on a 10-item pilot, then tested on 40 held-out items" and report no pilot number
 | Exp 22 P3 (Gumbel fed top ≥ 0.9 at ≥ 90% of steps) | ≥ 0.90 | 0.85 | **no** |
 | Exp 22 A1 / A2 | 35–65% / 25–60% | 47% / 37% | yes |
 | Exp 22 A3 (Gumbel flip within 0.05 of sampling) | ±0.05 | 0.45 vs 0.45 | yes |
-| Exp 23 E1 (soft KL < rand KL on most items) | majority | 6/100 on matched steps | **no, opposite direction** |
+| Exp 23 E1 (soft KL < rand KL on most items) | majority | 14/100 as registered (own steps); 6/100 on matched steps | **no, opposite direction** |
 | Exp 23 E2 (soft vs hard p > 0.05, diff ≤ 5 pts) | | p = 0.754, 2 pts | yes |
 
 ## 4. Setup (applies to Exp 16, 21, 22, 23)

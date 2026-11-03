@@ -69,9 +69,9 @@ def bonferroni_lower(rs, keys, n=BONF_DRAWS, seed=BONF_SEED):
 
 
 def table(colspec, header, body, caption, lab):
-    return "\n".join([r"\begin{table}[t]", r"\centering", r"\small", rf"\caption{{{caption}}}", rf"\label{{{lab}}}",
+    return "\n".join([r"\begin{table*}[t]", r"\centering", r"\small", rf"\caption{{{caption}}}", rf"\label{{{lab}}}",
                       rf"\begin{{tabular}}{{{colspec}}}", r"\toprule", *header, r"\midrule", *body, r"\bottomrule",
-                      r"\end{tabular}", r"\end{table}", ""])
+                      r"\end{tabular}", r"\end{table*}", ""])
 
 
 # Table A1
@@ -91,10 +91,10 @@ for g, keys in ROWS_A1.items():
 hdr = [r" & \multicolumn{4}{c}{Remove} & \multicolumn{4}{c}{Insert} \\",
        r"\cmidrule(lr){2-5} \cmidrule(lr){6-9}",
        r"Patched & Pooled & Gap $\geq$ 0.1 & Leave one out & Median & Pooled & Gap $\geq$ 0.1 & Leave one out & Median \\"]
-cap = (r"Robustness of the patching shares in Figure~5. Pooled: share of the summed blend--control gap closed "
+cap = (r"Robustness of the patching shares in Fig.~5. Pooled: share of the summed blend--control gap closed "
        r"(as plotted). Gap $\geq$ 0.1: the same, keeping only forks whose gap is at least 0.1. Leave one out: range of "
        r"the pooled share when each problem is dropped in turn. Median: median of per-fork shares over forks with gap "
-       r"$\geq$ 0.1. Exp~21, GSM8K items 10--49, 50/50 blends, forks where the model followed the chosen token.")
+       r"$\geq$ 0.1. Fork probe, GSM8K items 10--49, 50/50 blends, forks where the model followed the chosen token.")
 (FIG_DIR / "tabA1.tex").write_text(table("l" + "c" * 8, hdr, body, cap, "tab:fig5-robust"))
 
 # Table A2
@@ -110,7 +110,7 @@ for k in SINGLES_A2:
 hdr = [r" & \multicolumn{3}{c}{Remove} & \multicolumn{3}{c}{Insert} \\",
        r"\cmidrule(lr){2-4} \cmidrule(lr){5-7}",
        r"Patched & Share & 95\% CI & Corrected lower & Share & 95\% CI & Corrected lower \\"]
-cap = (r"Number vs number single layers that stand out in Figure~5c. 95\% CI: bootstrap over problems "
+cap = (r"Number vs number single layers that stand out in Fig.~5c. 95\% CI: bootstrap over problems "
        rf"(2,000 resamples). Corrected lower: lower bound of the Bonferroni-corrected interval for all {N_TESTS} "
        rf"single-layer tests (28 layers $\times$ remove/insert; {BONF_DRAWS:,} resamples). Every bound is above 0. "
        r"The single-layer analysis was not pre-registered.")
@@ -129,7 +129,7 @@ hdr = [r" & \multicolumn{2}{c}{Remove} & \multicolumn{2}{c}{Insert} \\",
        r"\cmidrule(lr){2-3} \cmidrule(lr){4-5}", r"Patched & Share & 95\% CI & Share & 95\% CI \\"]
 mg = np.mean([gap(r) for r in rs])
 cap = (rf"Number vs word forks ({len(rs)} forks from {len({r['item'] for r in rs})} problems), not shown in "
-       rf"Figure~5. The mean blend--control gap is only {mg:.2f}, so the shares are unstable (wide CIs, values above 1 "
+       rf"Fig.~5. The mean blend--control gap is only {mg:.2f}, so the shares are unstable (wide CIs, values above 1 "
        r"and below 0) and cannot localise the runner-up. 95\% CI: bootstrap over problems.")
 (FIG_DIR / "tabA3.tex").write_text(table("lcccc", hdr, body, cap, "tab:fig5-nw"))
 print("wrote figures/tabA1.tex, tabA2.tex, tabA3.tex")

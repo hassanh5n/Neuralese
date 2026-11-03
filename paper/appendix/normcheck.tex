@@ -1,9 +1,9 @@
 \section{Embedding-norm check for the random-residual control}\label{app:norms}
 
-The \ctrl{} of Exp~23 moves the residual onto a random vocabulary row.
+The \ctrl{} of the coupled ablation moves the residual onto a random vocabulary row.
 If random rows had much smaller norms than the tokens the model reads while reasoning, the control would carry a weaker
 signal than \ST{}, and the KL comparison of \cref{sec:q4} would be unfair to it.
-We regenerated the 8,192 random rows that Exp~23 drew, with the same keyed generator, % C23.13
+We regenerated the 8,192 random rows that the coupled ablation drew, with the same keyed generator, % C23.13
 and compared their norms with all real-token rows and with 9,168 tokens from sampled reasoning traces on 5 problems % C23.13
 (items 50--54). % C23.10
 The median norm is 1.195 for the random rows, 1.195 for all real-token rows, 1.196 when real rows are weighted % C23.10
