@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Neither Gumbel Soft Thinking nor the random-residual control differs detectably from sampling in accuracy; vanilla Soft Thinking trails it. Accuracy with Wilson 95\% CIs. McNemar: exact two-sided test on the problems where exactly one of the pair is correct (arm only / sampling only). Exp~16: sampling and Gumbel Soft Thinking at seeds 0 and 1, vanilla Soft Thinking at seed 0; McNemar uses the seed 0 runs, the only seed vanilla has. Vanilla hit Cold Stop on 14 of 30 runs, and all 5 runs without an answer ended there; against Gumbel (seed 0) it is 1 vs 5, $p = 0.22$. Exp~23: seed 0; the three arms share their noise, and the random-residual control moves the residual to a random token. Problems in Exp~23 are not used in any other experiment.}
+\label{tab:accuracy}
+\begin{tabular}{lrrcccc}
+\toprule
+ & & & & \multicolumn{3}{c}{McNemar vs sampling} \\
+\cmidrule(lr){5-7}
+Arm & Runs & Correct & Accuracy [95\% CI] & Arm only & Sampling only & $p$ \\
+\midrule
+\multicolumn{7}{l}{\emph{Exp~16: GSM8K items 0--29}} \\
+Sampling & 60 & 52 & 0.87 [0.76, 0.93] &  &  &  \\
+Vanilla Soft Thinking & 30 & 22 & 0.73 [0.56, 0.86] & 0 & 5 & 0.06 \\
+Gumbel Soft Thinking & 60 & 52 & 0.87 [0.76, 0.93] & 1 & 2 & 1.00 \\
+\addlinespace
+\multicolumn{7}{l}{\emph{Exp~23: GSM8K items 50--149, arms in lockstep}} \\
+Sampling & 100 & 86 & 0.86 [0.78, 0.91] &  &  &  \\
+Gumbel Soft Thinking & 100 & 88 & 0.88 [0.80, 0.93] & 6 & 4 & 0.75 \\
+Random-residual control & 100 & 82 & 0.82 [0.73, 0.88] & 3 & 7 & 0.34 \\
+\bottomrule
+\end{tabular}
+\end{table}

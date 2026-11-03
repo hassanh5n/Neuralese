@@ -5,8 +5,14 @@ Created 2026-10-17 by merging `neuralese-research-log.md` (Exp 1–8, literature
 and in git; they remain the lab notebook. **This file is the paper's source of truth.**
 
 **The rule.** A number may appear in the paper only if it has a row in the claim ledger (§2) and
-`python verify_claims.py` recomputes it from `results/`. Status on 2026-10-26: **90/90 checks pass** (16 added on 2026-10-22 for numbers quoted in §3 and §5, no value changed; 4 added on 2026-10-26 for the Exp 23 embedding-norm check).
+`python verify_claims.py` recomputes it from `results/`. Status on 2026-10-26: **110/110 checks pass** (16 added on 2026-10-22 for numbers quoted in §3 and §5, no value changed; 4 added on 2026-10-26 for the Exp 23 embedding-norm check; 2 added on 2026-10-26 for the snap order by layer in Fig 2; 3 added on 2026-10-26 for the readback CIs in Fig 3; 5 added on 2026-10-26 for the single-layer patching in Fig 4; 6 added on 2026-10-26 for Fig 5; 2 added on 2026-10-26 for the KL ratio in Fig 6; 2 added on 2026-10-26 for the McNemar tests vs sampling in Table 1). Robustness checks for Fig 4 and the appendix (C21.32–C21.40) run in `python verify_robustness.py`: **17/17 pass**; it also checks every cell of `figures/tabA1–A3.tex` and `figures/tab1.tex` (Tab1a–b, added 2026-10-26).
 Numbers in §6–§8 are history and must not be copied into the paper.
+
+> **Figure renumbering, 2026-10-26 (Hassan).** The four-questions figure is Fig 2. Entries written before this note
+> use the old numbers: old Fig 2 → **3** (snap by layer), 3 → **4** (readback), 4 → **5** (KV patching), 5 → **6** (fed
+> blends), 6 → **7** (residual ablation). Fig 1, Figs A1–A2 and Tables 1, A1–A3 keep their numbers. Files and scripts
+> were renamed to match (`make_fig3.py` … `make_fig7.py`, `make_tabA_fig5.py`); all figures regenerated; 110/110
+> and 17/17 checks pass.
 
 Contents: 1 Glossary · 2 Claim ledger · 3 Pre-registration record · 4 Setup · 5 Results (Exp 16, 21, 22, 23) ·
 6 Pilot work and lessons · 7 Excluded results · 8 Errata · 9 Literature sources · 10 Open items · 11 What was cut
@@ -29,6 +35,9 @@ Contents: 1 Glossary · 2 Claim ledger · 3 Pre-registration record · 4 Setup �
 | Readback [runner-up readback] | Control − blend score when B's continuation is forced in. > 0 means B's own information is read back from the KV cache. |
 | Remove / insert | KV patching at the fork position: blend cache with control K/V at layer L (is L needed?) / control cache with blend K/V at L (is L enough?). Reported as share of the blend–control gap closed. |
 | Residual | Blend weight not on the top token. Exp 23 arms: hard = one-hot top token (= sampling), soft = full blend (= Gumbel Soft Thinking), rand = residual moved to a random vocabulary token. |
+| Top weight / second weight *(added 2026-10-26)* | Largest / second-largest weight in the blend actually fed (Exp 22 `fed1` / `fed2`). The residual (1 − top weight) is the paper term for Exp 22 as well; "second weight" only where the single next token matters. Not "runner-up", which is the pre-noise second candidate. |
+| Balanced / lopsided / near one token *(added 2026-10-26)* | Fed top weight ≤ 0.75 / 0.75–0.9 / ≥ 0.9 (Fig 5a). |
+| Flip, sampling rate *(added 2026-10-26)* | Fed winner is not the pre-noise top token; 1 − pre-noise top weight, the rate at which sampling would flip. |
 | Option A / Option B | [genuine superposition] / [sampling in disguise]. |
 
 ## 2. Claim ledger
@@ -49,6 +58,8 @@ CIs are 95% bootstrap over problems unless marked. Model: DeepSeek-R1-Distill-Qw
 | C16.9 | Of those, items solved in every discrete and Gumbel run | 8, 19, 22, 28 (4 of 5) | exp16 |
 | C16.10 | Items wrong in every run of every condition | 3, 7 | exp16 |
 | C16.11 | Wilson 95% CI: 52/60 (discrete, Gumbel); 22/30 (vanilla) | [0.76, 0.93]; [0.56, 0.86] | exp16 |
+| C16.12 | Gumbel vs discrete, seed 0, paired McNemar *(added 2026-10-26, Table 1)* | Gumbel only 1, discrete only 2, p = 1.00 | exp16 |
+| C16.13 | Vanilla vs discrete, seed 0, paired McNemar *(added 2026-10-26, Table 1)* | vanilla only 0, discrete only 5, p = 0.062 | exp16 |
 | C21.1 | Forks found / unique, items 10–49 | 694 / 670 | exp21/step4_alpha_sweep_items10-49.jsonl |
 | C21.2 | Layer-0 check: c(α) = α at the embedding | max error 1.5e-7 | exp21 step4 |
 | C21.3 | Forks per kind | num-num 238 (40 problems), num-word 56 (24), word-word 376 (40) | exp21 step4 |
@@ -70,12 +81,36 @@ CIs are 95% bootstrap over problems unless marked. Model: DeepSeek-R1-Distill-Qw
 | C21.20 | Fork-level 95% CIs of C21.19 exclude 0 (as `neuralese_kv_patch.py`) | yes | exp21 patch |
 | C21.21 | num-num blocks sum to, remove / insert | 0.95 / 1.06 | exp21 patch |
 | C21.22 | P6 margin: min CI lower bound of (layers 0–7 − 12–27) | 0.31 | exp21 patch |
+| C21.23 | num-num vs word-word snap by layer: where the mean is below / where the CIs are apart | below at layers 1–12, above at 13–28 / CIs apart at 1–9 and 13–28 | exp21 step4 |
+| C21.24 | num-word snap CI above both other kinds' CIs | every layer 1–28 | exp21 step4 |
+| C21.25 | Readback CI with A's own text (dormancy), followed-A forks | num-num [−0.06, 0.04]; num-word [−0.00, 0.19]; word-word [−0.02, 0.07] | exp21 carryover |
+| C21.26 | Readback with B's text, by forced-text position bin (1, 2, 3–4, 5–8, 9–16, 17–32, 33–64): CI above 0 in every bin | yes, num-num and word-word | exp21 carryover |
+| C21.27 | Readback with A's own text, same bins: CI includes 0 in every bin | yes, num-num and word-word | exp21 carryover |
+| C21.28 | Patch forks (followed-A): forks / problems; problem-level CIs of num-num L0, L7, L13 above 0 (remove and insert) | num-num 96 / 35, word-word 139 / 40; yes | exp21 patch |
+| C21.29 | num-num single layers, remove / insert: L1, L2 | 0.21 / 0.07, 0.20 / 0.05 | exp21 patch |
+| C21.30 | num-num single layers other than 0–3, 7, 13 | ≤ 0.05 each (remove and insert) | exp21 patch |
+| C21.31 | num-num layers 0–3: sum of single layers vs the block, remove / insert | 0.84 vs 0.58 / 0.32 vs 0.55 | exp21 patch |
+| C21.32 | Table A1 (Fig 4 robustness), every cell; forks with gap ≥ 0.1 | all match; num-num 78 of 96, word-word 108 of 139 | exp21 patch, `verify_robustness.py` |
+| C21.33 | Largest change of a Table A1 pooled share when one problem is dropped | 0.04 | exp21 patch, `verify_robustness.py` |
+| C21.34 | num-num layer 0: pooled share vs median fork (gap ≥ 0.1), remove / insert | 0.38 vs 0.12 / 0.16 vs 0.02 | exp21 patch, `verify_robustness.py` |
+| C21.35 | Table A2 (num-num L0, L1, L2, L7, L13), every cell; Bonferroni lower bounds over 56 single-layer tests (20,000 problem resamples) all above 0; smallest | all match; yes; 0.01 (L1 and L2 insert) | exp21 patch, `verify_robustness.py` |
+| C21.36 | Table A3 (num-word blocks), every cell; forks / problems; mean gap | all match; 34 / 21; 0.11 | exp21 patch, `verify_robustness.py` |
+| C21.37 | Top 10 forks' share of the total gap; forks with gap ≤ 0 | num-num 0.27, 6; word-word 0.24, 19 | exp21 patch, `verify_robustness.py` |
+| C21.38 | Fig A1: readback with B's text, mean above 0 at every single position 1–16 | yes, num-num and word-word | exp21 carryover, `verify_robustness.py` |
+| C21.39 | num-num layer 0 remove share per fork (gap ≥ 0.1): quartiles | 0.01 / 0.12 / 0.68 | exp21 patch, `verify_robustness.py` |
+| C21.40 | Largest change of a Table A1 pooled share when forks with gap < 0.1 are dropped | 0.03 | exp21 patch, `verify_robustness.py` |
 | C22.1 | Vanilla, items 10–29: fork rate; fed top ≥ 0.9 all steps / forks; median fed top / runner-up at forks; winner flipped | 9.2%; 0.78 / 0.00; 0.56 / 0.33; 0.00 | exp22/exp22_mixtures_items10-29.jsonl |
 | C22.2 | Gumbel, same measures | 13.0%; 0.85 / **0.47**; **0.88 / 0.10**; 0.45 | exp22 |
 | C22.3 | Dirichlet, same measures | 13.3%; 0.83 / 0.37; 0.83 / 0.16; 0.42 | exp22 |
 | C22.4 | Gumbel-max check: Gumbel flip rate vs sampling (1 − mean pre-noise top weight) | 0.45 vs 0.45 | exp22 |
 | C22.5 | Vanilla fed weights = pre-noise weights at every step | true | exp22 |
 | C22.6 | Amendment closed form, two-candidate Gumbel P(fed top ≥ 0.9) at 50/50 and 75/25 | 0.50, 0.60 | formula (no data) |
+| C22.7 | Forks per arm: vanilla / Gumbel / Dirichlet; problems | 3,774 / 5,761 / 4,978; 20 | exp22 |
+| C22.8 | Flip rate minus sampling rate (1 − pre-noise top weight) at forks, problem-level 95% CI: Gumbel; Dirichlet | 0.00 [−0.01, 0.02]; −0.03 [−0.04, −0.02] | exp22 |
+| C22.9 | Gumbel, forks binned by sampling rate (width 0.05, 0.25–0.75): largest \|observed − sampling\| in bins with ≥ 100 forks | 0.04 | exp22 |
+| C22.10 | Dirichlet observed flip rate below the sampling rate in every bin | yes (10 of 10) | exp22 |
+| C22.11 | % of forks by fed top weight, ≤ 0.75 / 0.75–0.9 / ≥ 0.9: vanilla; Gumbel; Dirichlet | 100 / 0 / 0; 31 / 22 / 47; 38 / 25 / 37 | exp22 |
+| C22.12 | Median residual (1 − fed top) at forks: vanilla / Gumbel / Dirichlet; median share of the residual on the second-largest token: Gumbel / Dirichlet | 0.44 / 0.12 / 0.17; 0.99 / 1.00 | exp22 |
 | C23.1 | Accuracy, items 50–149: hard / soft / rand | 86 / 88 / 82 of 100 | exp23/exp23_residual_ablation_items50-149.jsonl |
 | C23.2 | Soft vs hard, McNemar | soft-only 6, hard-only 4, p = 0.754; same final answer 84/100 | exp23 |
 | C23.3 | Rand vs hard, McNemar | rand-only 3, hard-only 7, p = 0.344; same final answer 84/100 | exp23 |
@@ -83,6 +118,8 @@ CIs are 95% bootstrap over problems unless marked. Model: DeepSeek-R1-Distill-Qw
 | C23.5–6 | Which arm diverges from hard first (paired) | soft first 59, rand first 24, same 17; sign test p = 0.0002 | exp23 |
 | C23.7–8 | Mean per-item KL(arm ‖ hard), matched steps (before either arm's first flip) | soft 0.0077, rand 0.0014; soft > rand on 94/100 items | exp23 |
 | C23.9 | Wilson 95% CI: soft 88, hard 86, rand 82 of 100 | [0.80, 0.93], [0.78, 0.91], [0.73, 0.88] | exp23 |
+| C23.14 | Matched-step KL: ratio of means soft / rand; top 5 problems' share of soft's total; ratio of means without them | 5.7; 0.54; 3.1 | exp23 |
+| C23.15 | Matched-step KL: median per-problem ratio soft / rand, 95% CI over problems; median matched steps per problem | 3.9 [3.1, 5.0]; 31 | exp23 |
 | C23.10 | Median embedding norm: all real-token rows / the 8,192 random rows Exp 23 drew / same, usage-weighted / reasoning tokens (sampled CoT, items 50–54) | 1.195 / 1.195 / 1.196 / 1.202 | exp23/exp23_embedding_norms.json |
 | C23.11 | Random rows ÷ reasoning tokens, median / mean | 0.994 / 0.961 | exp23 norms |
 | C23.12 | 10th percentile: random rows / reasoning tokens | 0.897 / 1.058 | exp23 norms |
@@ -143,6 +180,14 @@ on a 10-item pilot, then tested on 40 held-out items" and report no pilot number
   argmax at every step (C22.5); layer 0 gives c = α exactly (C21.2); forcing a text in one pass = generating it token
   by token; patching all 28 layers reproduces the donor; Exp 23's two hard arms agree for 64 steps (gate output not
   saved in the jsonl). Exp 21–23 do not use the logit lens, so the double-normalisation bug (§6) cannot affect them.
+- *Added 2026-10-26 (paper draft, from the code; no value changed):* bootstrap CIs resample problems 2,000 times and take the
+  2.5th and 97.5th percentiles (`neuralese_stats.py` N_BOOT, `verify_claims.boot`, seed 0); the answer after `</think>` is
+  decoded greedily for at most 512 tokens (`neuralese_r1.py` MAX_ANSWER); Exp 23 KL is computed on the full next-token
+  distribution at the sampling temperature 0.6 (`neuralese_residual_ablation.py`); the random-residual token is one
+  real-token id per step, shared by all arms, drawn by the same keyed generator as the Gumbel noise.
+- *Added 2026-10-26 (paper draft, from the code; no value changed):* the readback score c places the model's next-token
+  distribution p (temperature 0.6) on the line from pure B to pure A: c = (p − p_B)·(p_A − p_B) / |p_A − p_B|²; positions
+  where p_A and p_B differ by less than 0.05 in total variation are skipped (`neuralese_kv_carryover.py` MIN_TV).
 
 ## 5. Results
 
@@ -168,6 +213,9 @@ traces, seed 0. 670 unique forks. Numbers: C21.1–C21.22. All six pre-registere
 (1−α)·emb(B) for α = 0, 0.1, …, 1, and project every layer's state onto the line from the pure-B to the pure-A state.
 - Blends collapse progressively: snap rises from 0 at the input to 0.37–0.70 at layer 7 and 0.77–0.98 at the output.
 - The more A and B differ in kind, the harder the snap: num-word 0.98 > num-num 0.84 > word-word 0.77 (CIs do not overlap).
+- *Added 2026-10-26 (Fig 2):* the order above holds **at the output**, not at every layer. Num-word snaps hardest at
+  every layer (CI above both others at layers 1–28). Num-num starts slowest: it is below word-word at layers 1–12
+  (CIs apart at 1–9) and above it from layer 13 to the output (CIs apart at 13–28). (C21.23–C21.24.)
 - At an exact 50/50 input the next token follows one candidate in 95% (num-num), 98% (num-word) and 88% (word-word) of forks.
 - Blended states stay near the A–B line (num-num off-line distance 0.28 of the A–B gap): no "third thing".
 - Noise does not change how a given blend is processed (vanilla and Gumbel final snap: num-num 0.85 / 0.84).
@@ -178,6 +226,12 @@ continuation, then B's, into each branch and score the readback c at every later
 - **The runner-up is stored and can be read back:** with B's text, the blend reads it more like B than the control does:
   num-num +0.44, word-word +0.33, num-word +0.11 (mostly erased, but CI above 0).
 - **It is dormant on the model's own path:** with A's text, blend ≈ control (−0.01 to +0.06).
+- *Added 2026-10-26 (Fig 3):* the own-text CIs all include 0 (num-num [−0.06, 0.04], num-word [−0.00, 0.19],
+  word-word [−0.02, 0.07]). Split by position in the forced text (log-spaced bins), the readback with B's text stays
+  above 0 in every bin up to 64 tokens, and the own-text readback includes 0 in every bin (num-num and word-word;
+  num-word has too few forks per bin). (C21.25–C21.27.)
+- *Added 2026-10-26 (Fig A1):* without binning, the mean readback with B's text is above 0 at every single position
+  1–16 (num-num, word-word; C21.38). Single positions hold few forks and their CIs are wide, which is why Fig 3 bins.
 
 **Measurement 3 (KV patching, `neuralese_kv_patch.py`).** Swap only the fork position's keys/values between blend
 and control caches, per layer and per 4-layer block.
@@ -187,6 +241,32 @@ and control caches, per layer and per 4-layer block.
   num-num: L0 0.38 / 0.16, L7 0.13 / 0.12, L13 0.08 / 0.13 (fork-level CIs exclude 0). Blocks sum to ≈ 1 (0.95 / 1.06
   num-num), so layer effects are roughly additive. (C21.15–C21.21.)
 - Num-word: gap too small (+0.11) to localise.
+- *Added 2026-10-26 (Fig 4):* the single-layer CIs of L0, L7 and L13 also exclude 0 when resampling problems,
+  not only forks (C21.28). The early effect sits in layers 0–2: L1 0.21 / 0.07 and L2 0.20 / 0.05 besides L0
+  (C21.29); outside layers 0–3, 7 and 13 every single layer closes ≤ 0.05 (C21.30). **Inside layers 0–3, single
+  layers are not additive:** removing one layer at a time sums to 0.84 against 0.58 for the block, inserting one at
+  a time sums to 0.32 against 0.55 (C21.31). Reading: the runner-up is held redundantly across layers 0–2; taking
+  out any one of them breaks the readback, but no single one is enough to carry it. The "roughly additive" line
+  above holds across blocks (C21.21), not inside layers 0–3.
+- *Added 2026-10-26 (robustness of Fig 4; Tables A1–A3, Fig A2):*
+  - **Status:** the block split (layers 0–7 vs 12–27) is pre-registered (P5, P6). The single-layer results (L1, L2,
+    L7, L13) and the non-additivity inside layers 0–3 are **exploratory**: they were found after looking.
+  - **Multiple tests:** with a Bonferroni correction over all 56 single-layer tests, L0, L1, L2, L7 and L13 stay above
+    0 for remove and insert; the weakest bound is 0.01 (L1 and L2 insert), so those two insert effects are only just
+    clear (C21.35).
+  - **Not one problem or a few forks:** dropping any one problem changes a pooled share by at most 0.04 (C21.33);
+    the 10 largest-gap forks carry 0.27 (num-num) and 0.24 (word-word) of the total gap (C21.37); keeping only forks
+    with gap ≥ 0.1 changes no share by more than 0.03 (C21.40).
+  - **Layer 0 is uneven across forks:** pooled remove share 0.38, but the median fork is 0.12 (insert 0.16 vs 0.02;
+    C21.34); quartiles 0.01 / 0.12 / 0.68 (C21.39). So "layer 0 closes 38%" is a pooled statement: layer 0 matters a
+    lot at some forks and little at about half. The blocks do not have this gap (layers 0–3 median 0.53 vs pooled 0.58).
+  - **Two readings of the non-additivity (C21.31):** (i) the runner-up is held redundantly across layers 0–2, or
+    (ii) the readback score saturates (it is a projection that can pass 1), so large single-layer patches add up to
+    more than their block. These data do not separate them; patching layers 0..k together would. No rerun planned
+    unless a reviewer asks. In the paper: report the non-additivity as a fact and redundancy as one reading.
+  - **Scope:** all of Fig 4 is 50/50 blends at forks where the model followed the chosen token (96 of 238 num-num
+    forks), the most favourable case for the runner-up (Exp 22: median fed runner-up weight 0.10).
+  - Num-word values are reported in Table A3 rather than dropped (mean gap 0.11, shares unstable; C21.36).
 
 **Reading.** The runner-up survives mostly as an echo of the input mix in early layers, plus a small processed trace
 (layers 7 and 13) for numbers, and stays dormant unless later text turns toward it. No evidence that the model reasons
@@ -204,6 +284,17 @@ items 10–29, recording pre-noise and fed weights at every thinking step. Numbe
   Soft Thinking = ordinary sampling of the top token + a residual on the others.
 - Reading: real runs feed genuine but lopsided blends at about half of the forks. The exact 50/50 blends of Exp 21 are the
   extreme case; real carry-over is at most what Exp 21 measured.
+- *Added 2026-10-26 (Fig 5):* Gumbel-max also holds bin by bin. With forks binned by the sampling flip rate,
+  Gumbel's flip rate is 0.00 [−0.01, 0.02] above sampling overall and within 0.04 of it in every bin with ≥ 100
+  forks (C22.8–9; one of ten bin-level CIs misses the diagonal, about what chance gives). **New: Dirichlet flips less
+  often than sampling**, −0.03 [−0.04, −0.02] overall and below the diagonal in all ten bins (C22.8, C22.10), so its
+  winner is biased toward the pre-noise top token. Forks per arm: 3,774 / 5,761 / 4,978 (C22.7); each arm is its own
+  run, so the forks differ.
+- *Added 2026-10-26 (Fig 5a):* by fed top weight, Gumbel forks are 31% balanced (≤ 0.75), 22% lopsided, 47% near one
+  token; Dirichlet 38 / 25 / 37%; vanilla 100% balanced by the fork rule (C22.11). Median residual 0.12 (Gumbel),
+  0.17 (Dirichlet), 0.44 before noise; the second-largest token holds 99–100% of it at the median fork (C22.12).
+- *Clarified 2026-10-26:* the "runner-up" weight in C22.1–C22.3 (`fed2`) is the **second-largest fed weight**, which
+  can sit on a different token than the pre-noise runner-up. The paper should call it "second-largest fed weight".
 - Pre-registered predictions: P1, P2 failed as the amendment predicted by arithmetic; P3 failed (0.85 < 0.90); A1–A3 met.
   The amendment's closed form (`neuralese_exp22_closed_form.py`) reruns and matches: P(fed top ≥ 0.9) = 0.50 at a 50/50
   fork, 0.60 at 75/25, 0.39–0.43 for three-candidate forks; Dirichlet 0.30–0.56.
@@ -222,6 +313,10 @@ Numbers: C23.1–C23.9.
 - Use matched-step KL, not the per-item KL logged at first (soft 0.545, rand 0.009), which averages each arm over its own
   steps up to its first flip and is dominated by the flip step.
 - Pre-registered: E1 not met (opposite direction), E2 met.
+- *Added 2026-10-26 (Fig 6):* the "about 5×" above is a ratio of means (5.7), and five problems hold 54% of soft's
+  total; without them the ratio is 3.1 (C23.14). **Use the per-problem summary in the paper:** soft moves predictions
+  a median 3.9× the random residual, 95% CI [3.1, 5.0], over a median of 31 matched steps (C23.15), and is higher on
+  94 of 100 problems (C23.8). The direction is not in doubt; only the size quoted changes.
 - **`rand` is a fair control** (`neuralese_exp23_norms.py`, rerun 2026-10-26; C23.10–13): the random rows Exp 23 actually
   drew (regenerated with the same keyed RNG on GPU) have median norm 1.195, the same as all real-token rows, and real
   reasoning tokens 1.202 (ratio 0.994; means 0.961). The random rows have a heavier low tail (10th percentile 0.897 vs
@@ -283,6 +378,10 @@ These shaped the design. None has saved output; do not cite any number from them
 | **2026-10-17** | **Exp 23: median first flip is 35.5 (soft) and 66 (rand)**, not 36 and 67. | this validation |
 | **2026-10-17** | **Pilot "prior bias for numbers" does not replicate** in Exp 21 (96 vs 80, p = 0.26). | this validation |
 | 2026-10-17 | Exp 16: mean time per run is ~3 s lower than logged (not used in the paper). | Log 2 |
+| 2026-10-26 | Exp 21 snap order (num-word > num-num > word-word) is an output-layer result; num-num is below word-word at layers 1–12 (C21.23–24). Wording only, no value changed. | Fig 2 |
+| 2026-10-26 | Exp 21 "layer effects are roughly additive" holds across 4-layer blocks only; inside layers 0–3 single layers are not additive (C21.31). | Fig 4 |
+| 2026-10-26 | Exp 22 "median fed top / runner-up": the second number is the second-largest fed weight, not necessarily the pre-noise runner-up's weight (`neuralese_mixtures.py`: `fed2 = sorted(w)[-2]`). | Fig 5 |
+| 2026-10-26 | Exp 23 "soft ≈ 5× rand" (matched-step KL) is a ratio of means driven by five problems; quote the median per-problem ratio 3.9 [3.1, 5.0] (C23.14–15). | Fig 6 |
 | **2026-10-26** | **Exp 23 norm check: reasoning tokens median 1.202, not 1.251; random rows are ~0.6% smaller, not ~5%.** The old reference set was never saved; the new one is sampled CoT on items 50–54. Random-row median (1.195) unchanged. | `neuralese_exp23_norms.py` |
 
 ## 9. Literature sources (verify each before citing; see next-steps-figures-validation.md §3 Step 5)
@@ -302,6 +401,9 @@ These shaped the design. None has saved output; do not cite any number from them
 - Aswal et al. 2026, *Observable Patterns Are Not Explanations*, arXiv:2606.12689. Decodability ≠ mechanism.
 - Jin, Yang & Wang 2026, arXiv:2607.06648; Zheng & Lee, SofT-GRPO, arXiv:2511.06411. Future work (faithfulness along training).
 - Kool et al. 2019 (Gumbel-max / Gumbel-top-k); McNemar and bootstrap references.
+- *Verified 2026-10-26 (full text read):* Backour = *The Dynamics of Continuous Mixture Collapse in Language Models*,
+  arXiv:2609.02049v1 (2 Sep 2026, single author, preprint). Its CALIB score is our snap measurement (snap = 1 − CALIB).
+  Rizvi-Martel et al. = arXiv:2604.06374v2 (3 Aug 2026), **COLM 2026**. Details and drafts: paper-writing-fixes.md §7.
 
 ## 10. Open items
 
@@ -313,9 +415,72 @@ These shaped the design. None has saved output; do not cite any number from them
    that run's versions only: every notebook ran `pip install -U transformers`, so Exp 16–23 may have used other versions
    (check each Kaggle version's log). Model revision not captured (`_commit_hash` is None in transformers 5.x); get it
    from `huggingface_hub.model_info(MODEL).sha` and pass `revision=` in `load()` from now on.
+   - *2026-10-26:* Model revision pinned from the Hugging Face API: `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B` at
+     `ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562`, last modified 2025-02-24, before every experiment, so Exp 14–23 all
+     loaded this revision (the scripts load the Hub id, not a Kaggle copy). Package versions for Exp 16–23 still
+     need the Kaggle version logs; none are in the repo.
+   - *2026-10-26:* Kaggle logs of the committed runs saved in `kaggle_logs/` (Hassan; other runs were interactive and
+     not saved). The logs print no versions (`pip -q`), but pip's download sizes identify the transformers wheel
+     (matched against PyPI wheel sizes and upload dates):
+     | Run (`kaggle_logs/`) | transformers wheel | Version | Reasoning |
+     |---|---|---|---|
+     | `exp21.log` | 12.6 MB | 5.19.0 | 5.18.0 (12.58 MB) also shows as 12.6, but the run followed the 10-07 pre-registration commit and 5.19.0 was out on 10-06 |
+     | `exp23.log` | 12.6 MB | 5.19.0 | run 10-10/11; 5.20.0 was released 10-15 |
+     | `exp16_exp22_exp19partial.log` | 12.8 MB | 5.20.0 or 5.20.1 | must be after 10-15: a later rerun of Exp 16 and 22, not the 10-03 / 10-11 originals; the Exp 19 part timed out at 12 h |
+     | `exp23_norms.log` | 12.8 MB | 5.20.2 | recorded by the script (torch 2.11.0+cu128, CUDA 12.8, Python 3.13.15, T4) |
+     Every log's summary matches the saved results and the ledger (C16.1–3, C22.1/C22.4, C21 readback +0.44/+0.11/+0.33,
+     C23.1–3), so the files in `results/` come from these runs. Exp 16 and 22 reproduced their originally logged numbers
+     exactly under a newer transformers. All logs run Python 3.13 (`dist-packages` path). torch, CUDA and the Kaggle image
+     are recorded only for the norm check. Still open: the date of the Exp 16 + 22 Kaggle version (pins 5.20.0 vs 5.20.1).
+   - *2026-10-26:* Exp 16 + 22 Kaggle version shows "9 days ago" (about 2026-10-17). PyPI uploads: 5.20.0 on 10-15
+     18:01 UTC, 5.20.1 on 10-16 13:02 UTC, 5.20.2 on 10-19 17:46 UTC. So that run used **5.20.1**, unless it started on
+     10-16 between about 11:50 and 13:02 UTC (exact time: hover over the date on Kaggle). Paper wording: transformers
+     5.19.0 (Exp 21, 23) and 5.20.1 (Exp 16, 22), inferred from the installed wheel; model revision ad9f0ae.
 5. Writing items carried from paper-writing-fixes.md: shrink the Exp 17 framing and cite Backour; one paragraph on the
    Rizvi-Martel tension. Track 3 (faithfulness, SFT vs RL) stays future work.
-6. Next: figure scripts (one per figure, reading `results/`).
+   - *2026-10-26:* Both drafted in paper-writing-fixes.md §7 after reading both papers. Backour's CALIB is our snap
+     (snap = 1 − CALIB), so collapse is no longer a headline contribution; Rizvi-Martel's "first few layers" rests on
+     logit-lens entropy and soft-vs-argmax KL over mostly near-one-token inputs, and their own §6 puts commitment in the
+     last layers. Awaiting approval.
+6. Next: figure scripts (one per figure, reading `results/`). Started 2026-10-26: `figures/style.py`, `figures/data.py`, Fig 2, Fig 3, Fig 4; appendix Tables A1–A3 (`make_tabA_fig4.py`), Fig A1, Fig A2, Fig 5, Fig 6.
+   - *2026-10-26:* Fig 6 approved (Hassan) after a rework: the paired split 59 / 24 / 17 with the sign test is drawn in (a),
+     the median ratio and its CI are a marker in (b), and the 31 matched steps are stated in the panel. The script now
+     recomputes the sign test itself (C23.6).
+   - *2026-10-26:* Table 1 drafted (`figures/make_tab1.py` → `figures/tab1.tex`, booktabs). Every McNemar compares an arm
+     with sampling; in Exp 16 on seed 0, the only seed vanilla has (new rows C16.12–13). Every cell is checked by
+     `verify_robustness.py` (Tab1a–b).
+   - *2026-10-26:* Table 1 approved (Hassan). Fig 1 drafted in TikZ (`figures/fig1.tex`, standalone build
+     `figures/fig1_standalone.tex`, compiled copy `figures/fig1.pdf`): (a) one thinking step, with the fed blend
+     split into top token (= sampling, Gumbel-max) and residual, and the three Exp 23 arms; (b) the four questions with
+     test, finding and figure. Weights in (a) are illustrative; the numbers in (b) are ledger values (C21.15–21, C22.8,
+     C22.12, C23.15, C23.2–3). Awaiting approval.
+   - *2026-10-26:* Fig 1 redrawn as a concept drawing after Hassan's review (the first draft was too text-heavy):
+     (a) sampling and (b) Gumbel Soft Thinking unrolled over thinking steps, with the soft input drawn as a grey top
+     token plus a blue residual slice, and the four questions as numbered marks with a one-line legend. No data
+     numbers; weights are illustrative. Style modelled on Rizvi-Martel et al. Fig 1, not copied. Awaiting approval.
+   - *2026-10-26:* Fig 1 redesigned from scratch (Hassan: the unrolled version was too close to Rizvi-Martel et al.).
+     (a) a triangle of blends of three candidate tokens: sampling feeds a corner, Soft Thinking feeds that corner plus
+     a short blue step (the residual), the control turns the step toward a random token; (b) one small picture per
+     question: a blend point sliding to a corner over layers, a K,V grid with the runner-up stored in early layers and
+     read later, a cloud of fed blends near the corners, and next-token bars shifted by each input. No data numbers.
+     Awaiting approval.
+   - *2026-10-26:* Split into two figures after Hassan's review (overlaps, untidy geometry). Fig 1 (`fig1.tex`) is now
+     the concept alone: next-token probabilities branch into sampling (one grey token), Gumbel Soft Thinking (same
+     token + blue residual) and the control (residual on a random token), with braces over the shared top token and
+     the residual. The four questions are a separate figure (`fig_questions.tex`, standalone
+     `fig_questions_standalone.tex`), one small drawing each. Fig 1 needs `\usetikzlibrary{decorations.pathreplacing}`.
+     Placing the questions figure as Fig 2 would renumber the data figures (2-6 become 3-7). Awaiting approval.
+   - *2026-10-26:* Fig 1 and the four-questions figure approved (Hassan). All figures and Table 1 are now done.
+   - *2026-10-26:* The four-questions figure is **Fig 1.1** (Hassan), so Figs 2-6 keep their numbers. Files renamed to
+     `figures/fig1_1.tex`, `fig1_1_standalone.tex`, `fig1_1.pdf`; the LaTeX for the 1.1 number (local \thefigure and
+     \theHfigure, then \addtocounter{figure}{-1}) is in the file header, tested with hyperref: Figure 1, 1.1, 2.
+7. *2026-10-26:* Outline drafted (`docs/paper-outline.md`). Hassan: the title must name superposition; venues are not
+   TMLR only (one archival venue among TMLR, ACL 2027 via ARR, COLM 2027, ICML 2027, plus arXiv and non-archival
+   workshops); a named preprint for professors' review comes first. Awaiting approval of title and contribution order.
+   - *2026-10-26:* The Fig 1.1 bullet above is superseded by the renumbering note at the top of this log (Hassan, 17:18):
+     questions = Fig 2, data figures 3–7, files renamed (`fig2.tex`, `make_fig3.py` … `make_fig7.py`, `make_tabA_fig5.py`).
+     The outline and `next-chat-prompt-preprint.md` were written from the older decision and are now updated to match.
+     The "Figure 5" references in Fig A2 and Tables A1–A3 are correct under the new numbers (KV patching).
 
 ## 11. What was cut and where to find it
 

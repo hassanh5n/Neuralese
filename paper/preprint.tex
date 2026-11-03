@@ -1,0 +1,54 @@
+% Preprint for review and discussion (named, line-numbered, draft header).
+% Build: ./build.sh   (pdflatex, bibtex, pdflatex x2)
+\documentclass[10pt,letterpaper]{article}
+\usepackage[letterpaper,margin=1in,headheight=14pt]{geometry}
+\input{preamble.tex}
+
+\usepackage{fancyhdr}
+\newcommand{\draftdate}{26 October 2026}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\itshape Draft for discussion, \draftdate}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[L]{\small\itshape Draft for discussion, \draftdate}\fancyhead[R]{\small\thepage}}
+
+\usepackage{lineno}
+\renewcommand{\linenumberfont}{\normalfont\tiny\color{black!45}}
+
+\title{Superposition or Sampling in Disguise?\\What Soft Thinking Stores, Feeds and Uses}
+\author{Hassan Nafees\\[2pt]
+  \small Department of Computer Science\\
+  \small FAST National University of Computer and Emerging Sciences (FAST-NUCES), Karachi, Pakistan\\
+  \small\texttt{k230769@nu.edu.pk}}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{plain}
+\linenumbers
+
+\input{sections/abstract.tex}
+\input{sections/introduction.tex}
+\input{sections/related.tex}
+\input{sections/setup.tex}
+\input{sections/results.tex}
+\input{sections/discussion.tex}
+\input{sections/limitations.tex}
+\input{sections/conclusion.tex}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\clearpage
+\appendix
+% Appendix floats are numbered A1, A2, ... (Tables A1--A3, Figures A1--A2).
+\setcounter{figure}{0}\setcounter{table}{0}
+\renewcommand{\thefigure}{A\arabic{figure}}\renewcommand{\theHfigure}{A\arabic{figure}}
+\renewcommand{\thetable}{A\arabic{table}}\renewcommand{\theHtable}{A\arabic{table}}
+\input{appendix/prereg.tex}
+\input{appendix/robustness.tex}
+\input{appendix/normcheck.tex}
+\input{appendix/repro.tex}
+\input{appendix/aiuse.tex}
+\end{document}

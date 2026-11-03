@@ -1,0 +1,42 @@
+\section{Reproducibility}\label{app:repro}
+
+\paragraph{Model and software.}
+Every experiment loads \texttt{deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B} from the Hugging Face Hub at revision
+\texttt{ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562}, last modified on 24 February 2025, before any of our runs. % SETUP
+The scripts load the Hub identifier, so all runs used this revision.
+Each Kaggle notebook installed the latest \texttt{transformers}; the install logs do not print versions, but the
+downloaded wheel identifies them.
+Exp~21 and Exp~23 used \texttt{transformers} 5.19.0, and Exp~16 and Exp~22 used 5.20.1 (inferred from the wheel size and upload dates). % SETUP
+The saved outputs of Exp~16 and Exp~22 come from a later rerun that reproduced the originally logged numbers exactly.
+The embedding-norm check (\cref{app:norms}) recorded its full environment: torch 2.11.0+cu128, % SETUP
+\texttt{transformers} 5.20.2, CUDA 12.8 and Python 3.13.15 on an NVIDIA Tesla T4. % SETUP
+All runs used Python 3.13; torch and CUDA versions are recorded only for the norm check. % SETUP
+
+\paragraph{Code, outputs and checks.}
+The table below maps each experiment to its script and saved output.
+The logs of the Kaggle runs that produced these outputs are in \texttt{kaggle\_logs/}.
+Two scripts recompute every number in the paper from the saved outputs and stop on any mismatch:
+\texttt{verify\_claims.py} checks the claim ledger, and \texttt{verify\_robustness.py} checks every cell of
+\cref{tab:accuracy} and Tables~\ref{tab:fig5-robust}--\ref{tab:fig5-nw}.
+A third script, \texttt{paper/check\_numbers.py}, checks that every number in the text matches the ledger row named
+next to it in the \LaTeX{} source.
+Figures are drawn by one script each (\texttt{figures/make\_*.py}) from the saved outputs.
+
+\begin{center}
+\footnotesize
+\textbf{Experiments, scripts and saved outputs} (under \texttt{results/}; seed 0 unless stated).\\[4pt]
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Experiment & Question & Items & Script & Saved output \\
+\midrule
+Exp~16 & Accuracy & 0--29 & \texttt{neuralese\_eval.py} & \texttt{exp16/gsm8k\_eval.jsonl} \\ % C16.1
+Exp~21 & Q1 snap & 10--49 & \texttt{neuralese\_sweep.py} & \texttt{exp21/step4\_alpha\_sweep\_*.jsonl} \\ % C21.1
+Exp~21 & Q2 readback & 10--49 & \texttt{neuralese\_kv\_carryover.py} & \texttt{exp21/step5\_kv\_carryover\_*.jsonl} \\ % C21.1
+Exp~21 & Q2 patching & 10--49 & \texttt{neuralese\_kv\_patch.py} & \texttt{exp21/step5\_kv\_patch\_*.jsonl} \\ % C21.1
+Exp~22 & Q3 fed blends & 10--29 & \texttt{neuralese\_mixtures.py} & \texttt{exp22/exp22\_mixtures\_*.jsonl} \\ % C22.1
+Exp~23 & Q4 ablation & 50--149 & \texttt{neuralese\_residual\_ablation.py} & \texttt{exp23/exp23\_residual\_ablation\_*.jsonl} \\ % C23.1
+Exp~23 & Norm check & 50--54 & \texttt{neuralese\_exp23\_norms.py} & \texttt{exp23/exp23\_embedding\_norms.json} \\ % C23.10
+\bottomrule
+\end{tabular}
+\end{center}

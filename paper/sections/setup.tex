@@ -1,0 +1,97 @@
+% Setup. Method settings are tagged SETUP (docs/neuralese-paper-log.md sections 1, 3, 4, 5); results carry ledger ids.
+\section{Setup}\label{sec:setup}
+
+\paragraph{Model.}
+All experiments use DeepSeek-R1-Distill-Qwen-1.5B \citep{deepseekai2025r1}, a reasoning model with 28 layers, % SETUP
+in fp32 on one NVIDIA T4 GPU. % SETUP
+Every run loaded the same model revision (\cref{app:repro}).
+We keep the experiment numbers of our lab log (Exp~16, Exp~21, Exp~22 and Exp~23) so that each number in the paper can be traced
+to its log entry, script and saved output.
+
+\paragraph{Decoding.}
+We follow the public implementation of \ST{} \citep{zhang2025soft}.
+At each thinking step the logits are divided by a temperature of 0.6 and filtered to at most 10 candidates % SETUP
+(top-$k$ 10, top-$p$ 0.95, min-$p$ 0.001), and the weights $p_k$ are renormalised. % SETUP
+Inside \texttt{<think>}, \ST{} feeds the blend $\sum_k w_k\,e_k$ of the candidates' input embeddings $e_k$
+instead of one token.
+Vanilla \ST{} uses $w = p$.
+\GST{} uses $w = \mathrm{softmax}\big((\log p + g)/\tau\big)$ with independent standard Gumbel noise $g$ and
+$\tau = 0.5$, and Dirichlet \ST{} draws $w \sim \mathrm{Dirichlet}(\gamma p)$ with $\gamma = 1.0$ % SETUP
+\citep{wu2025single}.
+The sampling arm is ordinary chain-of-thought decoding: it samples one token from the same filtered candidates
+and feeds its embedding.
+Thinking ends when the top token of the fed blend is \texttt{</think>} or end-of-sequence, at Cold Stop, or after
+8,192 steps. % SETUP
+We then feed a real \texttt{</think>} and decode the answer greedily for at most 512 tokens. % SETUP
+The public implementation samples the answer at temperature 0.6; we decode greedily so that the answer is a % SETUP
+deterministic function of the thinking trace.
+\emph{Cold Stop}, adapted from \citet{zhang2025soft}, ends thinking when the entropy of the pre-noise weights stays below 0.01 for 256 consecutive steps, % SETUP
+which catches repetition loops.
+It applies to the \ST{} arms only in Exp~16 and to all three arms in Exp~23.
+Our settings differ from those of \citet{wu2025single}, who use top-$k$ 30, a cap of 32,768 thinking tokens % CITE(wu2025single)
+and no Cold Stop.
+Within each of our comparisons every arm uses the same settings, so the comparisons stay matched.
+
+\paragraph{Task and problems.}
+We use GSM8K test problems \citep{cobbe2021gsm8k} with the prompt suffix
+``Please reason step by step, and put your final answer within \texttt{\textbackslash boxed\{\}}.''
+An answer is scored by the last number inside the last \texttt{\textbackslash boxed\{\}}.
+Each experiment uses a fixed range of test items:
+Exp~16 items 0--29, % C16.1
+Exp~21 items 10--49, % C21.1
+Exp~22 items 10--29 % C22.1
+and Exp~23 items 50--149. % C23.1
+Exp~22 is a subset of Exp~21's items and overlaps Exp~16, so these are not independent samples.
+Exp~23 uses problems that no other experiment touched.
+An earlier attempt on ProsQA was abandoned because most runs did not finish within the thinking budget, which is why
+we use GSM8K.
+An earlier, smaller test of answers at single forks was null; its saved output is incomplete, so we do not report it,
+and Exp~23 replaces it.
+Earlier comparisons with the logit lens were withdrawn after we found two errors in them (the final normalisation was
+applied twice, and the lens was read at the forward pass that produced the blend instead of the one that consumed it).
+
+\paragraph{Forks and blends.}
+A \emph{fork} is a thinking step at which the runner-up holds at least 25\% of the pre-noise filtered weight. % SETUP
+The \emph{chosen token} is the top candidate, the \emph{runner-up} is the second, and the \emph{control token} is
+the third.
+We classify a fork by whether the chosen token and the runner-up contain a digit:
+number vs number, number vs word, or word vs word.
+Exp~21 takes its forks from vanilla and \GST{} traces (seed 0) and finds 694 forks, 670 of them unique: % C21.1
+238 number vs number from 40 problems, 56 number vs word from 24 and 376 word vs word from 40. % C21.3
+At each fork it feeds blends from the same cached prefix: the sweep $\alpha e_A + (1-\alpha) e_B$ (\cref{sec:q1}),
+the 50/50 blend of chosen token and runner-up, and the 50/50 control blend of chosen token and control token
+(\cref{sec:q2}).
+We call the blend weight that is not on the top token the \emph{residual}, and the largest fed weight the
+\emph{top weight}.
+Exp~22 records the pre-noise and fed weights of real runs (\cref{sec:q3}).
+Exp~23 runs sampling, \ST{} and the \ctrl{} in lockstep (\cref{sec:q4}).
+The random token is drawn once per step from the real tokens of the vocabulary, by the same keyed generator as the
+Gumbel noise, so all arms see the same draw.
+
+\paragraph{Validation gates.}
+Before the experiments, the code passed a set of checks, all of which are in the scripts in our repository.
+A hand-written greedy loop reproduces \texttt{model.generate()}.
+The final hidden state reproduces the live logits under exactly one normalisation convention.
+In vanilla runs the top token of the fed blend equals the raw argmax at every step. % C22.5
+At layer 0 the sweep position equals the mixing weight (\cref{sec:q1}).
+Forcing a text in one forward pass matches generating it token by token.
+Patching the fork position in all 28 layers reproduces the donor cache. % SETUP
+In Exp~23, two copies of the sampling arm agree for 64 steps. % SETUP
+None of the reported experiments uses the logit lens.
+
+\paragraph{Pre-registration.}
+Before running Exp~21 we committed six predictions with numeric thresholds (P1--P6) to our repository.
+The thresholds were set on a 10-item pilot and then tested on 40 held-out items. % SETUP
+Predictions for Exp~22 and Exp~23 were committed the same way before those runs.
+Git dates come from the local machine, so they show the order of commits, not an external timestamp.
+\Cref{app:prereg} lists every prediction as written, with its outcome, including the ones that failed.
+
+\paragraph{Statistics.}
+Forks and steps from the same problem are not independent, so every CI on fork- or step-level quantities is a
+95\% percentile bootstrap that resamples problems, 2,000 times, with all forks of a drawn problem kept together. % SETUP
+Accuracies have Wilson 95\% intervals \citep{wilson1927probable}.
+Paired accuracy comparisons use the exact two-sided McNemar test \citep{mcnemar1947note} on problems where exactly
+one arm is correct, and the paired order of divergence in Exp~23 uses the exact two-sided sign test, ignoring ties.
+Exp~23 compares next-token distributions by the KL divergence of each arm's distribution from sampling's, computed
+over the full vocabulary at the sampling temperature.
+All runs use seed 0 unless stated; Exp~16 adds seed 1 for sampling and \GST{}. % SETUP

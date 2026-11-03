@@ -1,0 +1,89 @@
+% Fig 2: the four questions (TikZ). Follows Fig 1 (the concept). In the paper:
+%   \begin{figure*}[t] \centering \input{figures/fig2.tex} \caption{...} \label{fig:questions} \end{figure*}
+% Preamble needs \usepackage{tikz} and \usetikzlibrary{arrows.meta}. Drawn at final size; include it as is.
+% Draft caption:
+%   The four questions we test. (1) Does a blend of two candidates survive the layers, or snap to one of them
+%   (Fig. 3)? (2) Is the runner-up stored in the K,V cache, and can later steps read it back (Figs. 4-5)?
+%   (3) What blends does the noise actually feed in real runs (Fig. 6)? (4) Does the residual move the model's
+%   next-token predictions more than a random residual of the same size (Fig. 7, Table 1)? Drawings are schematic.
+% No data numbers: every position and bar is illustrative.
+% Colours match figures/style.py: sampling grey, Gumbel Soft Thinking blue, random-residual control orange.
+\definecolor{fsamp}{HTML}{7F7F7F}%
+\definecolor{fsoft}{HTML}{0072B2}%
+\definecolor{frand}{HTML}{E69F00}%
+\definecolor{fdark}{HTML}{333333}%
+\definecolor{fcell}{HTML}{E9E9EC}%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\footnotesize, line width=0.5pt,
+    >={Stealth[length=4pt, width=3.5pt]},
+    lab/.style={font=\scriptsize, inner sep=1pt, text=black!60},
+    qm/.style={circle, fill=fdark, text=white, font=\scriptsize\bfseries, inner sep=0pt, minimum size=10.5pt},
+    qt/.style={anchor=north west, font=\footnotesize\bfseries, text=fdark, inner sep=0pt, text width=3.4cm,
+               align=left, execute at begin node={\hyphenpenalty=10000}}]
+
+\foreach \x in {4.075, 8.225, 12.375} \draw[black!15] (\x, 0.05) -- (\x, 3.65);
+
+% ---------- 1: does the blend survive the layers? ----------
+\begin{scope}[shift={(0, 0)}]
+  \node[qm] at (0.17, 3.5) {1}; \node[qt] at (0.42, 3.6) {Does the blend survive the layers?};
+  \foreach \y/\f in {0.6/0.5, 1.45/0.72, 2.3/0.87} {
+    \draw[black!30, line width=0.8pt] (1.0, \y) -- (3.6, \y);
+    \draw[fdark, fill=white] (1.0, \y) circle (0.075);
+    \fill[fsamp] (3.6, \y) circle (0.075);
+    \fill[fsoft] (1.0+2.6*\f, \y) circle (0.095);
+  }
+  \draw[->, fsoft!60, dash pattern=on 1.5pt off 1.2pt] (2.38, 0.72) .. controls (2.52, 1.05) .. (2.79, 1.34);
+  \draw[->, fsoft!60, dash pattern=on 1.5pt off 1.2pt] (2.95, 1.57) .. controls (3.08, 1.9) .. (3.22, 2.18);
+  \node[lab, anchor=east] at (0.85, 0.6) {input};
+  \node[lab, anchor=east] at (0.85, 2.3) {output};
+  \node[lab, font=\scriptsize\ttfamily, text=fdark] at (1.0, 0.3) {8};
+  \node[lab, font=\scriptsize\ttfamily, text=fdark] at (3.6, 0.3) {7};
+  \node[lab, text=fsoft] at (2.3, 0.3) {blend};
+\end{scope}
+
+% ---------- 2: is the runner-up stored? ----------
+\begin{scope}[shift={(4.15, 0)}]
+  \node[qm] at (0.17, 3.5) {2}; \node[qt] at (0.42, 3.6) {Is the runner-up stored?};
+  \foreach \i in {0,...,4} \foreach \j in {0,...,3}
+    \fill[fcell] (0.75+0.57*\i, 0.5+0.45*\j) rectangle (1.25+0.57*\i, 0.88+0.45*\j);
+  \fill[fsoft] (1.32, 0.5) rectangle (1.82, 0.88);
+  \fill[fsoft!60] (1.32, 0.95) rectangle (1.82, 1.33);
+  \fill[fsoft!22] (1.32, 1.4) rectangle (1.82, 1.78);
+  \draw[->, fdark, line width=0.7pt] (3.28, 2.3) .. controls (3.15, 2.85) and (1.75, 2.85) .. (1.6, 2.32);
+  \node[lab, text=fdark] at (2.44, 2.92) {read later};
+  \draw[->, black!45] (0.5, 0.5) -- (0.5, 2.23) node[midway, lab, rotate=90, anchor=south] {layers};
+  \node[lab, text=fsoft] at (1.57, 0.27) {fork};
+  \draw[->, black!45] (2.1, 0.27) -- (3.0, 0.27);
+  \node[lab, anchor=west] at (3.03, 0.27) {steps};
+\end{scope}
+
+% ---------- 3: what does the noise feed? ----------
+\begin{scope}[shift={(8.3, 0)}]
+  \node[qm] at (0.17, 3.5) {3}; \node[qt] at (0.42, 3.6) {What does the noise feed?};
+  \foreach \r [count=\k] in {0.04, 0.15, 0.02, 0.38, 0.07, 0.01, 0.26, 0.05} {
+    \pgfmathsetmacro{\yy}{2.55-0.27*\k}
+    \fill[fsamp] (0.55, \yy) rectangle ({0.55+3.0*(1-\r)}, \yy+0.17);
+    \fill[fsoft] ({0.55+3.0*(1-\r)}, \yy) rectangle (3.55, \yy+0.17);
+  }
+  \node[lab] at (2.05, 0.12) {fed blends in real runs};
+\end{scope}
+
+% ---------- 4: is the residual used? ----------
+\begin{scope}[shift={(12.45, 0)}]
+  \node[qm] at (0.17, 3.5) {4}; \node[qt] at (0.42, 3.6) {Is the residual used?};
+  \draw[fill=fcell, draw=black!30, rounded corners=2pt] (1.4, 0.3) rectangle (1.95, 2.35);
+  \node[lab, rotate=90, text=fdark] at (1.675, 1.325) {model};
+  \foreach \y/\c/\h in {2.05/fsamp/{0.48,0.30,0.14,0.06}, 1.3/fsoft/{0.30,0.46,0.14,0.08}, 0.55/frand/{0.46,0.31,0.15,0.07}} {
+    \fill[fsamp] (0.1, \y-0.14) rectangle (0.74, \y+0.14);
+    \draw[->, black!45] (1.03, \y) -- (1.34, \y);
+    \draw[->, black!45] (2.0, \y) -- (2.3, \y);
+    \foreach \v [count=\k] in \h \fill[\c] ({2.38+0.22*(\k-1)}, \y-0.22) rectangle ({2.53+0.22*(\k-1)}, {\y-0.22+0.85*\v});
+    \draw[black!40] (2.33, \y-0.22) -- (3.25, \y-0.22);
+  }
+  \fill[fsamp] (0.74, 1.91) rectangle (0.95, 2.19);
+  \fill[fsoft] (0.74, 1.16) rectangle (0.95, 1.44);
+  \fill[frand] (0.74, 0.41) rectangle (0.95, 0.69);
+  \foreach \y in {1.3, 0.55} \foreach \v [count=\k] in {0.48,0.30,0.14,0.06}
+    \draw[fdark, dash pattern=on 1pt off 0.8pt, line width=0.35pt] ({2.38+0.22*(\k-1)}, \y-0.22) rectangle ({2.53+0.22*(\k-1)}, {\y-0.22+0.85*\v});
+  \node[lab] at (2.79, 2.55) {next token};
+\end{scope}
+\end{tikzpicture}

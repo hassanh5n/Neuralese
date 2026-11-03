@@ -1,0 +1,198 @@
+\begin{thebibliography}{25}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Aswal et~al.(2026)Aswal, Ferraz, Zhou, and
+  Peyrard]{aswal2026observable}
+Darpan Aswal, Thomas~Palmeira Ferraz, Yongxin Zhou, and Maxime Peyrard.
+\newblock Observable patterns are not explanations: A causal-geometric analysis
+  of latent reasoning models, 2026.
+\newblock arXiv:2606.12689v1.
+
+\bibitem[Backour(2026)]{backour2026dynamics}
+Ali Backour.
+\newblock The dynamics of continuous mixture collapse in language models, 2026.
+\newblock arXiv:2609.02049v1.
+
+\bibitem[Butt et~al.(2025)Butt, Kwiatkowski, Labiad, Kempe, and
+  Ollivier]{butt2025soft}
+Natasha Butt, Ariel Kwiatkowski, Ismail Labiad, Julia Kempe, and Yann Ollivier.
+\newblock Soft tokens, hard truths, 2025.
+\newblock arXiv:2509.19170v2.
+
+\bibitem[Cobbe et~al.(2021)Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser,
+  Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman]{cobbe2021gsm8k}
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz
+  Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano,
+  Christopher Hesse, and John Schulman.
+\newblock Training verifiers to solve math word problems, 2021.
+\newblock arXiv:2110.14168.
+
+\bibitem[{DeepSeek-AI}(2025)]{deepseekai2025r1}
+{DeepSeek-AI}.
+\newblock {DeepSeek-R1}: Incentivizing reasoning capability in {LLMs} via
+  reinforcement learning, 2025.
+\newblock arXiv:2501.12948. Published in Nature 645:633--638 (2025).
+
+\bibitem[Deng et~al.(2025)Deng, Pang, Wei, Xu, Duan, Xu, Song, Shen, and
+  Cheng]{deng2025latent}
+Jingcheng Deng, Liang Pang, Zihao Wei, Shicheng Xu, Zenghao Duan, Kun Xu, Yang
+  Song, Huawei Shen, and Xueqi Cheng.
+\newblock {LLM} latent reasoning as chain of superposition, 2025.
+\newblock arXiv:2510.15522v2.
+
+\bibitem[Elhage et~al.(2022)Elhage, Hume, Olsson, Schiefer, Henighan, Kravec,
+  Hatfield-Dodds, Lasenby, Drain, Chen, et~al.]{elhage2022toy}
+Nelson Elhage, Tristan Hume, Catherine Olsson, Nicholas Schiefer, Tom Henighan,
+  Shauna Kravec, Zac Hatfield-Dodds, Robert Lasenby, Dawn Drain, Carol Chen,
+  et~al.
+\newblock Toy models of superposition.
+\newblock \emph{Transformer Circuits Thread}, 2022.
+\newblock arXiv:2209.10652.
+
+\bibitem[Gumbel(1954)]{gumbel1954statistical}
+Emil~Julius Gumbel.
+\newblock \emph{Statistical Theory of Extreme Values and Some Practical
+  Applications: A Series of Lectures}.
+\newblock Number~33 in National Bureau of Standards Applied Mathematics Series.
+  U.S. Government Printing Office, Washington, DC, 1954.
+
+\bibitem[Hao et~al.(2025)Hao, Sukhbaatar, Su, Li, Hu, Weston, and
+  Tian]{hao2024coconut}
+Shibo Hao, Sainbayar Sukhbaatar, DiJia Su, Xian Li, Zhiting Hu, Jason Weston,
+  and Yuandong Tian.
+\newblock Training large language models to reason in a continuous latent
+  space.
+\newblock In \emph{Conference on Language Modeling (COLM)}, 2025.
+\newblock arXiv:2412.06769.
+
+\bibitem[Jang et~al.(2017)Jang, Gu, and Poole]{jang2017categorical}
+Eric Jang, Shixiang Gu, and Ben Poole.
+\newblock Categorical reparameterization with {G}umbel-softmax.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2017.
+\newblock arXiv:1611.01144.
+
+\bibitem[Jin et~al.(2026)Jin, Yang, and Wang]{jin2026final}
+Hengyu Jin, Shu Yang, and Di~Wang.
+\newblock Final checkpoints are not enough: Analyzing latent reasoning
+  faithfulness along training trajectories, 2026.
+\newblock arXiv:2607.06648v2.
+
+\bibitem[Kool et~al.(2019)Kool, van Hoof, and Welling]{kool2019stochastic}
+Wouter Kool, Herke van Hoof, and Max Welling.
+\newblock Stochastic beams and where to find them: The {G}umbel-top-$k$ trick
+  for sampling sequences without replacement.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, pages
+  3499--3508, 2019.
+\newblock arXiv:1903.06059.
+
+\bibitem[Li et~al.(2026)Li, Bai, Chen, Li, Yang, Lin, and
+  Zhang]{li2026dynamics}
+Zirui Li, Xuefeng Bai, Kehai Chen, Yizhi Li, Jian Yang, Chenghua Lin, and Min
+  Zhang.
+\newblock Dynamics within latent chain-of-thought: An empirical study of causal
+  structure.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2026.
+\newblock arXiv:2602.08783v3.
+
+\bibitem[Maddison et~al.(2014)Maddison, Tarlow, and
+  Minka]{maddison2014sampling}
+Chris~J. Maddison, Daniel Tarlow, and Tom Minka.
+\newblock A* sampling.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~27, 2014.
+\newblock arXiv:1411.0030.
+
+\bibitem[Maddison et~al.(2017)Maddison, Mnih, and Teh]{maddison2017concrete}
+Chris~J. Maddison, Andriy Mnih, and Yee~Whye Teh.
+\newblock The concrete distribution: A continuous relaxation of discrete random
+  variables.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2017.
+\newblock arXiv:1611.00712.
+
+\bibitem[McNemar(1947)]{mcnemar1947note}
+Quinn McNemar.
+\newblock Note on the sampling error of the difference between correlated
+  proportions or percentages.
+\newblock \emph{Psychometrika}, 12\penalty0 (2):\penalty0 153--157, 1947.
+\newblock \doi{10.1007/BF02295996}.
+
+\bibitem[Meng et~al.(2022)Meng, Bau, Andonian, and Belinkov]{meng2022locating}
+Kevin Meng, David Bau, Alex Andonian, and Yonatan Belinkov.
+\newblock Locating and editing factual associations in {GPT}.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2022.
+\newblock arXiv:2202.05262.
+
+\bibitem[Rizvi-Martel et~al.(2026)Rizvi-Martel, Rabusseau, and
+  Mosbach]{rizvimartel2026illusion}
+Michael Rizvi-Martel, Guillaume Rabusseau, and Marius Mosbach.
+\newblock The illusion of superposition? {A} principled analysis of latent
+  thinking in language models.
+\newblock In \emph{Conference on Language Modeling (COLM)}, 2026.
+\newblock arXiv:2604.06374v2.
+
+\bibitem[Wei et~al.(2022)Wei, Wang, Schuurmans, Bosma, Ichter, Xia, Chi, Le,
+  and Zhou]{wei2022chain}
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia,
+  Ed~Chi, Quoc Le, and Denny Zhou.
+\newblock Chain-of-thought prompting elicits reasoning in large language
+  models.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2022.
+\newblock arXiv:2201.11903.
+
+\bibitem[Wilson(1927)]{wilson1927probable}
+Edwin~B. Wilson.
+\newblock Probable inference, the law of succession, and statistical inference.
+\newblock \emph{Journal of the American Statistical Association}, 22\penalty0
+  (158):\penalty0 209--212, 1927.
+\newblock \doi{10.1080/01621459.1927.10502953}.
+
+\bibitem[Wu et~al.(2026)Wu, Lu, Ren, Hu, Wu, Dai, and Wu]{wu2025single}
+Junhong Wu, Jinliang Lu, Zixuan Ren, Gangqiang Hu, Zhi Wu, Dai Dai, and Hua Wu.
+\newblock {LLMs} are single-threaded reasoners: Demystifying the working
+  mechanism of soft thinking.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2026.
+\newblock arXiv:2508.03440v4.
+
+\bibitem[Zhang et~al.(2025{\natexlab{a}})Zhang, Tang, Ju, Duan, and
+  Liu]{zhang2025latent}
+Yuyi Zhang, Boyu Tang, Tianjie Ju, Sufeng Duan, and Gongshen Liu.
+\newblock Do latent tokens think? {A} causal and adversarial analysis of
+  chain-of-continuous-thought, 2025{\natexlab{a}}.
+\newblock arXiv:2512.21711v1.
+
+\bibitem[Zhang et~al.(2025{\natexlab{b}})Zhang, He, Yan, Shen, Zhao, Wang,
+  Shen, and Wang]{zhang2025soft}
+Zhen Zhang, Xuehai He, Weixiang Yan, Ao~Shen, Chenyang Zhao, Shuohang Wang,
+  Yelong Shen, and Xin~Eric Wang.
+\newblock Soft thinking: Unlocking the reasoning potential of {LLMs} in
+  continuous concept space.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2025{\natexlab{b}}.
+\newblock arXiv:2505.15778.
+
+\bibitem[Zheng et~al.(2025)Zheng, Gu, Liu, Teh, and Lee]{zheng2025softgrpo}
+Zhi Zheng, Yu~Gu, Wei Liu, Yee~Whye Teh, and Wee~Sun Lee.
+\newblock {SofT-GRPO}: Surpassing discrete-token {LLM} reinforcement learning
+  via {G}umbel-reparameterized soft-thinking policy optimization, 2025.
+\newblock arXiv:2511.06411v2.
+
+\bibitem[Zhu et~al.(2025)Zhu, Hao, Hu, Jiao, Russell, and
+  Tian]{zhu2025superposition}
+Hanlin Zhu, Shibo Hao, Zhiting Hu, Jiantao Jiao, Stuart Russell, and Yuandong
+  Tian.
+\newblock Reasoning by superposition: A theoretical perspective on chain of
+  continuous thought.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2025.
+\newblock arXiv:2505.12514.
+
+\end{thebibliography}

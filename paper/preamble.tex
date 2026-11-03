@@ -1,0 +1,27 @@
+% Shared preamble for every version of the paper (preprint now; venue wrappers later).
+% Venue wrappers load their own class and style, then \input this file minus the layout block.
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,decorations.pathreplacing}
+\usepackage[round]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
+\crefname{appendix}{Appendix}{Appendices}
+
+% Figures and tables live in figures/ (synced from ../figures by build.sh).
+\graphicspath{{figures/}}
+
+% Paper terms (docs/paper-writing-fixes.md section 1 and 6.1). Use these macros so a rename is one edit.
+\newcommand{\ST}{Soft Thinking}
+\newcommand{\GST}{Gumbel Soft Thinking}
+\newcommand{\ctrl}{random-residual control}

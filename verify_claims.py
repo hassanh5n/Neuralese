@@ -1,6 +1,6 @@
 """Recompute every number in docs/neuralese-paper-log.md (claim ledger) from results/ and check it.
 
-Run from the repo root:  python verify_claims.py      (CPU only, standard library, ~5 s)
+Run from the repo root:  python verify_claims.py      (CPU only, standard library, ~40 s)
 Each claim id (e.g. C21.3) matches a row of the ledger. Exits non-zero if any value differs.
 """
 import json
@@ -85,6 +85,11 @@ check("C16.8", ([8, 19, 21, 22, 28], True), (na, all(r["stop_reason"] == "cold_s
 check("C16.9", [8, 19, 22, 28], [i for i in na if all(r["correct"] for r in e16 if r["noise"] is not None and r["item"] == i)])
 check("C16.10", [3, 7], [i for i in range(30) if not any(r["correct"] for r in e16 if r["item"] == i)])
 check("C16.11", ((0.76, 0.93), (0.56, 0.86)), (wilson(52, 60), wilson(22, 30)))  # discrete = Gumbel 52/60; vanilla 22/30
+d0 = by("discrete", 0)  # Table 1: McNemar vs sampling on seed 0 runs (the only seed vanilla has)
+for cid, arm_s0, want in (("C16.12", g0, (1, 2, 1.0)), ("C16.13", v, (0, 5, 0.062))):
+    only_arm = sum(arm_s0[i] and not d0[i] for i in d0)
+    only_samp = sum(d0[i] and not arm_s0[i] for i in d0)
+    check(cid, want, (only_arm, only_samp, round(sign_p(only_arm, only_samp), 3)))
 
 # ---------------- Exp 21: replication of the fork measurements, items 10-49 ----------------
 sw = rows("exp21/step4_alpha_sweep_items10-49.jsonl")
@@ -164,6 +169,65 @@ p6 = [boot([r for r in pa if group(r) == g and "remove" in r], lambda rs, n=n: f
       for g in ("nn", "ww") for n in ("remove", "insert")]
 check("C21.22", 0.31, min(p6))
 
+
+def boot_layers(rs, n=2000):  # boot() for mean snap at every layer at once (same item draws)
+    by = {}
+    for r in rs:
+        by.setdefault(r["item"], []).append([snap(r, L) for L in range(29)])
+    rng, items = random.Random(0), list(by)
+    tot = {i: [sum(col) for col in zip(*v)] for i, v in by.items()}
+    reps = []
+    for _ in range(n):
+        pick = rng.choices(items, k=len(items))
+        k = sum(len(by[i]) for i in pick)
+        reps.append([sum(tot[i][L] for i in pick) / k for L in range(29)])
+    col = [sorted(r[L] for r in reps) for L in range(29)]
+    return [c[int(0.025 * n)] for c in col], [c[int(0.975 * n) - 1] for c in col]
+
+
+lay = {g: [mean(snap(r, L) for r in sw if group(r) == g) for L in range(29)] for g in ("nn", "nw", "ww")}
+ci = {g: boot_layers([r for r in sw if group(r) == g]) for g in lay}
+check("C21.23", (list(range(1, 13)), list(range(1, 10)), list(range(13, 29))),  # nn vs ww: mean below; CIs apart
+      ([L for L in range(1, 29) if lay["nn"][L] < lay["ww"][L]], [L for L in range(1, 29) if ci["nn"][1][L] < ci["ww"][0][L]],
+       [L for L in range(1, 29) if ci["nn"][0][L] > ci["ww"][1][L]]))
+check("C21.24", list(range(1, 29)), [L for L in range(1, 29) if ci["nw"][0][L] > max(ci["nn"][1][L], ci["ww"][1][L])])
+
+
+# Readback CIs for Fig 4: own text (dormancy), and by forced-text position bin (log-spaced)
+POS_BINS = [(1, 1), (2, 2), (3, 4), (5, 8), (9, 16), (17, 32), (33, 64)]
+
+
+def leftover_bin(r, src, lo, hi):
+    x = r["cont"][src]
+    d = [k - b for b, k in zip(x["c"][lo:hi + 1], x["c_ctrl"][lo:hi + 1]) if b is not None]
+    return mean(d) if d else float("nan")
+
+
+fol = {g: [r for r in ca if group(r) == g and r["cont"]["A"]["top_is_A"][0] and not r["cont"]["A"]["top_is_B"][0]
+           and leftover(r, "B") == leftover(r, "B")] for g in ("nn", "nw", "ww")}
+check("C21.25", ((-0.06, 0.04), (-0.0, 0.19), (-0.02, 0.07)),  # own-text readback CI, nn / nw / ww
+      tuple(boot([dict(r, la=leftover(r, "A")) for r in fol[g]], lambda rs: mean([r["la"] for r in rs])) for g in ("nn", "nw", "ww")))
+
+
+def bin_ci(g, src, lo, hi):
+    rs = [dict(r, lb=leftover_bin(r, src, lo, hi)) for r in fol[g]]
+    return boot([r for r in rs if r["lb"] == r["lb"]], lambda x: mean([r["lb"] for r in x]))
+
+
+bci = {(g, s): [bin_ci(g, s, lo, hi) for lo, hi in POS_BINS] for g in ("nn", "ww") for s in ("A", "B")}
+check("C21.26", True, all(c[0] > 0 for g in ("nn", "ww") for c in bci[g, "B"]))  # runner-up text: CI > 0 in every bin
+check("C21.27", True, all(c[0] <= 0 <= c[1] for g in ("nn", "ww") for c in bci[g, "A"]))  # own text: CI holds 0
+
+# Fig 5: patch forks per kind, and problem-level CIs for the num-num single layers (C21.20 is fork-level)
+pnn, pww = [r for r in pk if group(r) == "nn"], [r for r in pk if group(r) == "ww"]
+check("C21.28a", ((96, 35), (139, 40)), tuple((len(x), len({r["item"] for r in x})) for x in (pnn, pww)))
+check("C21.28b", True, all(boot(pnn, lambda rs, k=k, n=n: frac(rs, n, [k]))[0] > 0 for k in ("L0", "L7", "L13") for n in ("remove", "insert")))
+sl = {(i, n): frac(pnn, n, [f"L{i}"]) for i in range(28) for n in ("remove", "insert")}
+check("C21.29", ((0.21, 0.07), (0.20, 0.05)), tuple((round(sl[i, "remove"], 2), round(sl[i, "insert"], 2)) for i in (1, 2)))
+check("C21.30", True, all(abs(round(sl[i, n], 2)) <= 0.05 for i in range(28) if i not in (0, 1, 2, 3, 7, 13) for n in ("remove", "insert")))
+check("C21.31", ((0.84, 0.58), (0.32, 0.55)),  # layers 0-3: sum of single layers vs the block, remove / insert
+      tuple((round(sum(sl[i, n] for i in range(4)), 2), round(frac(pnn, n, ["L0-3"]), 2)) for n in ("remove", "insert")))
+
 # ---------------- Exp 22: what blends noise feeds, items 10-29 ----------------
 e22 = rows("exp22/exp22_mixtures_items10-29.jsonl")
 for cid, nz, frate, allp, forkp, med, flip in (("C22.1", None, 0.092, 0.78, 0.00, (0.56, 0.33), 0.00),
@@ -186,6 +250,27 @@ sig = lambda x: 1 / (1 + exp(-x))
 cform = lambda w1, w2: 1 - sig(0.5 * log(9) - log(w1 / w2)) + sig(-0.5 * log(9) - log(w1 / w2))
 check("C22.6", (0.50, 0.60), (round(cform(0.5, 0.5), 2), round(cform(0.75, 0.25), 2)))
 
+# Fig 6: forks per arm; flip rate vs the sampling rate (1 - pre-noise top weight), pooled and in bins of width 0.05
+fk22 = {nz: [{"item": r["item"], "e": 1 - r["pre1"][i], "flip": r["flip"][i]} for r in e22 if r["noise"] == nz
+             for i in range(len(r["pre1"])) if r["pre2"][i] >= 0.25] for nz in (None, "gumbel", "dirichlet")}
+check("C22.7", (3774, 5761, 4978, 20), (*(len(fk22[nz]) for nz in (None, "gumbel", "dirichlet")),
+                                         len({f["item"] for nz in fk22 for f in fk22[nz]})))
+dflip = lambda fs: mean([f["flip"] for f in fs]) - mean([f["e"] for f in fs])
+check("C22.8", ((0.0, (-0.01, 0.02)), (-0.03, (-0.04, -0.02))),
+      tuple((round(dflip(fk22[nz]), 2), boot(fk22[nz], dflip)) for nz in ("gumbel", "dirichlet")))
+E22 = [0.25 + 0.05 * j for j in range(11)]
+bins22 = lambda fs: [[f for f in fs if lo <= f["e"] < hi or (j == 9 and f["e"] == hi)] for j, (lo, hi) in enumerate(zip(E22, E22[1:]))]
+check("C22.9", 0.04, round(max(abs(dflip(b)) for b in bins22(fk22["gumbel"]) if len(b) >= 100), 2))
+check("C22.10", True, all(dflip(b) < 0 for b in bins22(fk22["dirichlet"])))
+fed22 = {nz: [(r["fed1"][i], r["fed2"][i]) for r in e22 if r["noise"] == nz for i in range(len(r["pre1"])) if r["pre2"][i] >= 0.25]
+         for nz in (None, "gumbel", "dirichlet")}
+check("C22.11", ((100, 0, 0), (31, 22, 47), (38, 25, 37)),  # % of forks by fed top weight: <= 0.75 / 0.75-0.9 / >= 0.9
+      tuple(tuple(round(100 * mean(c(t) for t, _ in fed22[nz])) for c in (lambda t: t <= 0.75, lambda t: 0.75 < t < 0.9,
+                                                                          lambda t: t >= 0.9)) for nz in (None, "gumbel", "dirichlet")))
+check("C22.12", ((0.44, 0.12, 0.17), (0.99, 1.0)),  # median residual (1 - fed top) at forks; median share of it on the 2nd token
+      (tuple(round(median(1 - t for t, _ in fed22[nz]), 2) for nz in (None, "gumbel", "dirichlet")),
+       tuple(round(median(u / (1 - t) for t, u in fed22[nz] if t < 1), 2) for nz in ("gumbel", "dirichlet"))))
+
 # ---------------- Exp 23: coupled residual ablation, items 50-149 ----------------
 e23 = rows("exp23/exp23_residual_ablation_items50-149.jsonl")
 check("C23.1", (100, 86, 88, 82), (len(e23), *(sum(r[a]["correct"] for r in e23) for a in ("hard", "soft", "rand"))))
@@ -204,6 +289,15 @@ ms = [mean(r["kl"]["soft"][:min(r["flip"]["soft"], r["flip"]["rand"])]) for r in
 mr = [mean(r["kl"]["rand"][:min(r["flip"]["soft"], r["flip"]["rand"])]) for r in e23]
 check("C23.7", (0.0077, 0.0014), (round(mean(ms), 4), round(mean(mr), 4)))
 check("C23.8", 94, sum(s > q for s, q in zip(ms, mr)), 0)
+# How robust is "soft moves predictions more"? Ratio of means is driven by a few problems; report the median ratio.
+top5 = sorted(range(100), key=lambda i: -ms[i])[:5]
+rest = [i for i in range(100) if i not in top5]
+check("C23.14", (5.7, 0.54, 3.1), (round(mean(ms) / mean(mr), 1), round(sum(ms[i] for i in top5) / sum(ms), 2),
+                                   round(mean(ms[i] for i in rest) / mean(mr[i] for i in rest), 1)))
+e23r = [dict(r, ratio=a / b) for r, a, b in zip(e23, ms, mr)]
+lo23, hi23 = boot(e23r, lambda rs: median(r["ratio"] for r in rs))
+check("C23.15", (3.9, (3.1, 5.0), 31), (round(median(r["ratio"] for r in e23r), 1), (round(lo23, 1), round(hi23, 1)),
+                                       median(min(r["flip"]["soft"], r["flip"]["rand"]) for r in e23)))
 check("C23.9", ((0.80, 0.93), (0.78, 0.91), (0.73, 0.88)), tuple(wilson(k, 100) for k in (88, 86, 82)))  # soft / hard / rand
 # Embedding-norm check (neuralese_exp23_norms.py, Kaggle T4): is `rand` a fair control?
 nj = json.load(open(R + "exp23/exp23_embedding_norms.json"))

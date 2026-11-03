@@ -1,0 +1,210 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{wei2022chain}
+\citation{hao2024coconut,zhang2025soft}
+\citation{zhu2025superposition}
+\citation{zhang2025soft}
+\citation{wu2025single}
+\citation{rizvimartel2026illusion}
+\citation{backour2026dynamics}
+\citation{gumbel1954statistical,maddison2014sampling}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
+\newlabel{sec:intro@cref}{{[section][1][]1}{[1][1][]1}}
+\citation{deepseekai2025r1}
+\citation{cobbe2021gsm8k}
+\citation{backour2026dynamics}
+\citation{zhang2025soft}
+\citation{wu2025single}
+\citation{jang2017categorical,maddison2017concrete}
+\citation{kool2019stochastic}
+\citation{butt2025soft}
+\citation{zheng2025softgrpo}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Gumbel Soft Thinking{} feeds the sampled token plus a residual. At each thinking step the model gives next-token probabilities. Sampling feeds one token. Gumbel Soft Thinking{} adds Gumbel noise and feeds the softmax-weighted mix of token embeddings. By the Gumbel-max trick, its top token is distributed exactly as the sampled one, and it is the same token when both use the same noise in the same context, as in our coupled ablation (\cref  {sec:q4}). So all it adds is the residual (blue). The random-residual control{} keeps the top token and the residual's size but moves the residual to a random token (orange). Weights are illustrative.\relax }}{2}{figure.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:concept}{{1}{2}{\GST {} feeds the sampled token plus a residual. At each thinking step the model gives next-token probabilities. Sampling feeds one token. \GST {} adds Gumbel noise and feeds the softmax-weighted mix of token embeddings. By the Gumbel-max trick, its top token is distributed exactly as the sampled one, and it is the same token when both use the same noise in the same context, as in our coupled ablation (\cref {sec:q4}). So all it adds is the residual (blue). The \ctrl {} keeps the top token and the residual's size but moves the residual to a random token (orange). Weights are illustrative.\relax }{figure.caption.1}{}}
+\newlabel{fig:concept@cref}{{[figure][1][]1}{[1][2][]2}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related work}{2}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{2}{2}{Related work}{section.2}{}}
+\newlabel{sec:related@cref}{{[section][2][]2}{[1][2][]2}}
+\@writefile{toc}{\contentsline {paragraph}{Soft Thinking and noise.}{2}{section*.3}\protected@file@percent }
+\citation{zhu2025superposition}
+\citation{hao2024coconut}
+\citation{deng2025latent}
+\citation{rizvimartel2026illusion}
+\citation{backour2026dynamics}
+\citation{meng2022locating}
+\citation{li2026dynamics}
+\citation{zhang2025latent}
+\citation{aswal2026observable}
+\citation{jin2026final}
+\citation{elhage2022toy}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The four questions we test. (1) Does a blend of two candidates survive the layers, or snap to one of them (\cref  {fig:snap})? (2) Is the runner-up stored in the K,V cache, and can later steps read it back (\cref  {fig:readback,fig:patch})? (3) What blends does the noise actually feed in real runs (\cref  {fig:fed})? (4) Does the residual move the model's next-token predictions more than a random residual of the same size (\cref  {fig:ablation}, \cref  {tab:accuracy})? Drawings are schematic.\relax }}{3}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:questions}{{2}{3}{The four questions we test. (1) Does a blend of two candidates survive the layers, or snap to one of them (\cref {fig:snap})? (2) Is the runner-up stored in the K,V cache, and can later steps read it back (\cref {fig:readback,fig:patch})? (3) What blends does the noise actually feed in real runs (\cref {fig:fed})? (4) Does the residual move the model's next-token predictions more than a random residual of the same size (\cref {fig:ablation}, \cref {tab:accuracy})? Drawings are schematic.\relax }{figure.caption.2}{}}
+\newlabel{fig:questions@cref}{{[figure][2][]2}{[1][2][]3}}
+\@writefile{toc}{\contentsline {paragraph}{Is superposition used?}{3}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Collapse of mixtures.}{3}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Causal analysis of latent reasoning.}{3}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Two senses of superposition.}{3}{section*.7}\protected@file@percent }
+\citation{deepseekai2025r1}
+\citation{zhang2025soft}
+\citation{wu2025single}
+\citation{zhang2025soft}
+\citation{wu2025single}
+\citation{cobbe2021gsm8k}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Setup}{4}{section.3}\protected@file@percent }
+\newlabel{sec:setup}{{3}{4}{Setup}{section.3}{}}
+\newlabel{sec:setup@cref}{{[section][3][]3}{[1][4][]4}}
+\@writefile{toc}{\contentsline {paragraph}{Model.}{4}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Decoding.}{4}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Task and problems.}{4}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Forks and blends.}{4}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Validation gates.}{4}{section*.12}\protected@file@percent }
+\citation{wilson1927probable}
+\citation{mcnemar1947note}
+\citation{backour2026dynamics}
+\citation{backour2026dynamics}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Blends collapse gradually through the layers. At each fork we feed a blend of the chosen token and the runner-up and measure how sharply each layer resolves it (snap: 0 = carried linearly, 1 = clean switch). Snap is 0 at the input by construction and reaches 0.98 (number vs word), 0.84 (number vs number) and 0.77 (word vs word) at the output. Number vs word snaps hardest at every layer from 1 to 28; number vs number starts slowest and passes word vs word at layer 13. Bands: 95\% bootstrap CIs over problems. 670 unique forks from 40 GSM8K problems (items 10--49). Inputs are sweeps between two candidates at forks, not the lopsided blends real runs feed (\cref  {sec:q3}).\relax }}{5}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:snap}{{3}{5}{Blends collapse gradually through the layers. At each fork we feed a blend of the chosen token and the runner-up and measure how sharply each layer resolves it (snap: 0 = carried linearly, 1 = clean switch). Snap is 0 at the input by construction and reaches 0.98 (number vs word), 0.84 (number vs number) and 0.77 (word vs word) at the output. Number vs word snaps hardest at every layer from 1 to 28; number vs number starts slowest and passes word vs word at layer 13. Bands: 95\% bootstrap CIs over problems. 670 unique forks from 40 GSM8K problems (items 10--49). Inputs are sweeps between two candidates at forks, not the lopsided blends real runs feed (\cref {sec:q3}).\relax }{figure.caption.15}{}}
+\newlabel{fig:snap@cref}{{[figure][3][]3}{[1][5][]5}}
+\@writefile{toc}{\contentsline {paragraph}{Pre-registration.}{5}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Statistics.}{5}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Results}{5}{section.4}\protected@file@percent }
+\newlabel{sec:results}{{4}{5}{Results}{section.4}{}}
+\newlabel{sec:results@cref}{{[section][4][]4}{[1][5][]5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Q1: Does a blend of two candidates survive the layers?}{5}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:q1}{{4.1}{5}{Q1: Does a blend of two candidates survive the layers?}{subsection.4.1}{}}
+\newlabel{sec:q1@cref}{{[subsection][1][4]4.1}{[1][5][]5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces The runner-up is stored and can be read back, but stays dormant on the model's own path. At forks where the model followed the chosen token, we force a 64-token continuation into the cache built from the 50/50 blend and into a control cache (chosen token blended 50/50 with the third-ranked candidate), and score the next-token predictions from 0 (as if the runner-up had been written) to 1 (as if the chosen token had). Readback = control minus blend; above 0 means the runner-up is read back from the cache. (a) Per fork: with the runner-up's text, +0.44 (number vs number), +0.11 (number vs word) and +0.33 (word vs word); with the model's own text, $-0.01$ to $+0.06$, with every CI including 0. (b) With the runner-up's text, the readback stays above 0 in every position bin up to 64 tokens for number vs number and word vs word. (c) With the model's own text, the CI includes 0 in every bin for number vs number and word vs word. Positions are binned on a log scale; \cref  {fig:readback-unbinned} shows them unbinned. Bars and bands: 95\% bootstrap CIs over problems. $n$ = 96, 34 and 139 forks. Exact 50/50 blends are the most favourable case for the runner-up, so these values are likely an upper bound for real forks, if readback grows with the residual (\cref  {sec:q3}).\relax }}{6}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:readback}{{4}{6}{The runner-up is stored and can be read back, but stays dormant on the model's own path. At forks where the model followed the chosen token, we force a 64-token continuation into the cache built from the 50/50 blend and into a control cache (chosen token blended 50/50 with the third-ranked candidate), and score the next-token predictions from 0 (as if the runner-up had been written) to 1 (as if the chosen token had). Readback = control minus blend; above 0 means the runner-up is read back from the cache. (a) Per fork: with the runner-up's text, +0.44 (number vs number), +0.11 (number vs word) and +0.33 (word vs word); with the model's own text, $-0.01$ to $+0.06$, with every CI including 0. (b) With the runner-up's text, the readback stays above 0 in every position bin up to 64 tokens for number vs number and word vs word. (c) With the model's own text, the CI includes 0 in every bin for number vs number and word vs word. Positions are binned on a log scale; \cref {fig:readback-unbinned} shows them unbinned. Bars and bands: 95\% bootstrap CIs over problems. $n$ = 96, 34 and 139 forks. Exact 50/50 blends are the most favourable case for the runner-up, so these values are likely an upper bound for real forks, if readback grows with the residual (\cref {sec:q3}).\relax }{figure.caption.18}{}}
+\newlabel{fig:readback@cref}{{[figure][4][]4}{[1][6][]6}}
+\@writefile{toc}{\contentsline {paragraph}{Answer.}{6}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Q2: Is the runner-up stored, and can later text read it back?}{6}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:q2}{{4.2}{6}{Q2: Is the runner-up stored, and can later text read it back?}{subsection.4.2}{}}
+\newlabel{sec:q2@cref}{{[subsection][2][4]4.2}{[1][6][]6}}
+\@writefile{toc}{\contentsline {paragraph}{Readback.}{6}{section*.17}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces The runner-up is stored mostly in the early layers. At each fork (50/50 blend; forks where the model followed the chosen token) we swap the keys and values of the fork position between the blend cache and the control cache at a set of layers, and report the pooled share of the blend--control readback gap this closes (summed over forks). Remove (filled): put control K,V into the blend cache (are these layers needed?). Insert (open): put blend K,V into the control cache (are they enough?). (a, b) Layers 0--7 close 0.77 / 0.71 (number vs number, remove / insert) and 0.77 / 0.91 (word vs word) of the gap; layers 12--27 close 0.12 / 0.26 and 0.08 / 0.14. (c) Number vs number, single layers: the early effect sits in layers 0--2 (remove 0.38, 0.21, 0.20). Outside layers 0--3, only layers 7 (0.13 / 0.12) and 13 (0.08 / 0.13) stand out, with CIs excluding 0; every other layer closes at most 0.05. Note the different $y$-axis in (c). The single-layer analysis was not pre-registered; \cref  {tab:fig5-singles} shows these layers survive a Bonferroni correction over all 56 single-layer tests. \Cref  {tab:fig5-robust} shows the shares hold when any one problem, or forks with a small gap, are dropped; \cref  {fig:perfork} shows the per-fork spread, which is wide for layer 0. Error bars: 95\% bootstrap CIs over problems. 96 forks from 35 problems (number vs number) and 139 forks from 40 problems (word vs word). Number vs word is not shown: its gap ($+0.11$) is too small to localise (\cref  {tab:fig5-nw}). All shares are measured at exact 50/50 blends, the most favourable case for the runner-up, so these shares are likely an upper bound for real forks.\relax }}{7}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:patch}{{5}{7}{The runner-up is stored mostly in the early layers. At each fork (50/50 blend; forks where the model followed the chosen token) we swap the keys and values of the fork position between the blend cache and the control cache at a set of layers, and report the pooled share of the blend--control readback gap this closes (summed over forks). Remove (filled): put control K,V into the blend cache (are these layers needed?). Insert (open): put blend K,V into the control cache (are they enough?). (a, b) Layers 0--7 close 0.77 / 0.71 (number vs number, remove / insert) and 0.77 / 0.91 (word vs word) of the gap; layers 12--27 close 0.12 / 0.26 and 0.08 / 0.14. (c) Number vs number, single layers: the early effect sits in layers 0--2 (remove 0.38, 0.21, 0.20). Outside layers 0--3, only layers 7 (0.13 / 0.12) and 13 (0.08 / 0.13) stand out, with CIs excluding 0; every other layer closes at most 0.05. Note the different $y$-axis in (c). The single-layer analysis was not pre-registered; \cref {tab:fig5-singles} shows these layers survive a Bonferroni correction over all 56 single-layer tests. \Cref {tab:fig5-robust} shows the shares hold when any one problem, or forks with a small gap, are dropped; \cref {fig:perfork} shows the per-fork spread, which is wide for layer 0. Error bars: 95\% bootstrap CIs over problems. 96 forks from 35 problems (number vs number) and 139 forks from 40 problems (word vs word). Number vs word is not shown: its gap ($+0.11$) is too small to localise (\cref {tab:fig5-nw}). All shares are measured at exact 50/50 blends, the most favourable case for the runner-up, so these shares are likely an upper bound for real forks.\relax }{figure.caption.20}{}}
+\newlabel{fig:patch@cref}{{[figure][5][]5}{[1][7][]7}}
+\@writefile{toc}{\contentsline {paragraph}{Where the runner-up is stored.}{7}{section*.19}\protected@file@percent }
+\citation{gumbel1954statistical,maddison2014sampling}
+\citation{wu2025single}
+\@writefile{toc}{\contentsline {paragraph}{Answer.}{8}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Q3: What blends does the noise actually feed?}{8}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:q3}{{4.3}{8}{Q3: What blends does the noise actually feed?}{subsection.4.3}{}}
+\newlabel{sec:q3@cref}{{[subsection][3][4]4.3}{[1][8][]8}}
+\@writefile{toc}{\contentsline {paragraph}{The top token of Gumbel Soft Thinking{} is a sampled token.}{8}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The residual is real but small.}{8}{section*.24}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Noise turns real forks into lopsided blends, and Gumbel's winner is a sample. A fork is a thinking step where the pre-noise runner-up holds at least 25\% of the weight (9.2\% of steps for vanilla, 13.0\% for Gumbel, 13.3\% for Dirichlet). (a) Share of forks by the top weight of the blend actually fed. Vanilla feeds the pre-noise weights unchanged, so it shows what the model wanted: every fork is balanced (top weight at most 0.75, by the fork rule). Gumbel feeds a near one-token blend (top weight at least 0.9) at 47\% of forks and Dirichlet at 37\%. The median fed blend has a residual (weight off the top token) of 0.12 for Gumbel and 0.17 for Dirichlet, against 0.44 before noise. (b) How often noise makes a token other than the pre-noise top one the winner, minus how often ordinary sampling would (1 minus the pre-noise top weight), with forks binned by the sampling rate. Gumbel matches sampling: 0.00 [$-0.01$, 0.02] overall and within 0.04 in every bin with at least 100 forks. Dirichlet flips less often than sampling in every bin, $-0.03$ [$-0.04$, $-0.02$] overall (dashed line). Vanilla never flips (not shown). Error bars: 95\% bootstrap CIs over problems. 3,774 (vanilla), 5,761 (Gumbel) and 4,978 (Dirichlet) forks from 20 GSM8K problems; each arm is its own run, so the forks differ.\relax }}{9}{figure.caption.23}\protected@file@percent }
+\newlabel{fig:fed}{{6}{9}{Noise turns real forks into lopsided blends, and Gumbel's winner is a sample. A fork is a thinking step where the pre-noise runner-up holds at least 25\% of the weight (9.2\% of steps for vanilla, 13.0\% for Gumbel, 13.3\% for Dirichlet). (a) Share of forks by the top weight of the blend actually fed. Vanilla feeds the pre-noise weights unchanged, so it shows what the model wanted: every fork is balanced (top weight at most 0.75, by the fork rule). Gumbel feeds a near one-token blend (top weight at least 0.9) at 47\% of forks and Dirichlet at 37\%. The median fed blend has a residual (weight off the top token) of 0.12 for Gumbel and 0.17 for Dirichlet, against 0.44 before noise. (b) How often noise makes a token other than the pre-noise top one the winner, minus how often ordinary sampling would (1 minus the pre-noise top weight), with forks binned by the sampling rate. Gumbel matches sampling: 0.00 [$-0.01$, 0.02] overall and within 0.04 in every bin with at least 100 forks. Dirichlet flips less often than sampling in every bin, $-0.03$ [$-0.04$, $-0.02$] overall (dashed line). Vanilla never flips (not shown). Error bars: 95\% bootstrap CIs over problems. 3,774 (vanilla), 5,761 (Gumbel) and 4,978 (Dirichlet) forks from 20 GSM8K problems; each arm is its own run, so the forks differ.\relax }{figure.caption.23}{}}
+\newlabel{fig:fed@cref}{{[figure][6][]6}{[1][8][]9}}
+\@writefile{toc}{\contentsline {paragraph}{Answer.}{9}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Q4: Does the model use the residual?}{9}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:q4}{{4.4}{9}{Q4: Does the model use the residual?}{subsection.4.4}{}}
+\newlabel{sec:q4@cref}{{[subsection][4][4]4.4}{[1][9][]9}}
+\@writefile{toc}{\contentsline {paragraph}{The model reads the residual.}{9}{section*.28}\protected@file@percent }
+\citation{wu2025single}
+\citation{wu2025single}
+\citation{wu2025single}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Neither Gumbel Soft Thinking nor the random-residual control differs detectably from sampling in accuracy; vanilla Soft Thinking trails it. Accuracy with Wilson 95\% CIs. McNemar: exact two-sided test on the problems where exactly one of the pair is correct (arm only / sampling only). Exp\nobreakspace  {}16: sampling and Gumbel Soft Thinking at seeds 0 and 1, vanilla Soft Thinking at seed 0; McNemar uses the seed 0 runs, the only seed vanilla has. Vanilla hit Cold Stop on 14 of 30 runs, and all 5 runs without an answer ended there; against Gumbel (seed 0) it is 1 vs 5, $p = 0.22$. Exp\nobreakspace  {}23: seed 0; the three arms share their noise, and the random-residual control moves the residual to a random token. Problems in Exp\nobreakspace  {}23 are not used in any other experiment.\relax }}{10}{table.caption.26}\protected@file@percent }
+\newlabel{tab:accuracy}{{1}{10}{Neither Gumbel Soft Thinking nor the random-residual control differs detectably from sampling in accuracy; vanilla Soft Thinking trails it. Accuracy with Wilson 95\% CIs. McNemar: exact two-sided test on the problems where exactly one of the pair is correct (arm only / sampling only). Exp~16: sampling and Gumbel Soft Thinking at seeds 0 and 1, vanilla Soft Thinking at seed 0; McNemar uses the seed 0 runs, the only seed vanilla has. Vanilla hit Cold Stop on 14 of 30 runs, and all 5 runs without an answer ended there; against Gumbel (seed 0) it is 1 vs 5, $p = 0.22$. Exp~23: seed 0; the three arms share their noise, and the random-residual control moves the residual to a random token. Problems in Exp~23 are not used in any other experiment.\relax }{table.caption.26}{}}
+\newlabel{tab:accuracy@cref}{{[table][1][]1}{[1][9][]10}}
+\@writefile{toc}{\contentsline {paragraph}{Accuracy does not change detectably.}{10}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Answer.}{10}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{10}{section.5}\protected@file@percent }
+\newlabel{sec:discussion}{{5}{10}{Discussion}{section.5}{}}
+\newlabel{sec:discussion@cref}{{[section][5][]5}{[1][10][]10}}
+\@writefile{toc}{\contentsline {paragraph}{Reconciling with \citet  {wu2025single}.}{10}{section*.31}\protected@file@percent }
+\citation{rizvimartel2026illusion}
+\citation{backour2026dynamics}
+\citation{rizvimartel2026illusion}
+\citation{butt2025soft,zheng2025softgrpo}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces The model reads the residual. Three arms run in lockstep with shared noise on 100 GSM8K problems: sampling (top token only), Soft Thinking{} (full blend) and a random-residual control{} (the residual moved to a random token). (a) Share of problems on which each arm has so far picked the same token as sampling at every thinking step. Soft Thinking{} leaves sampling sooner: median step 35.5 vs 66; it leaves first on 59 problems, the random residual on 24, both at once on 17 (sign test $p = 0.0002$). (b) Per problem, how far Soft Thinking{} moves next-token predictions away from sampling's, divided by how far the random residual does (KL divergence, averaged over the steps before either arm leaves sampling; median 31 steps). Soft Thinking{} moves them more on 94 of 100 problems; the median problem is 3.9 times (marker: median and 95\% bootstrap CI over problems, [3.1, 5.0]). Items 50--149, not used in any other experiment; seed 0.\relax }}{11}{figure.caption.27}\protected@file@percent }
+\newlabel{fig:ablation}{{7}{11}{The model reads the residual. Three arms run in lockstep with shared noise on 100 GSM8K problems: sampling (top token only), \ST {} (full blend) and a \ctrl {} (the residual moved to a random token). (a) Share of problems on which each arm has so far picked the same token as sampling at every thinking step. \ST {} leaves sampling sooner: median step 35.5 vs 66; it leaves first on 59 problems, the random residual on 24, both at once on 17 (sign test $p = 0.0002$). (b) Per problem, how far \ST {} moves next-token predictions away from sampling's, divided by how far the random residual does (KL divergence, averaged over the steps before either arm leaves sampling; median 31 steps). \ST {} moves them more on 94 of 100 problems; the median problem is 3.9 times (marker: median and 95\% bootstrap CI over problems, [3.1, 5.0]). Items 50--149, not used in any other experiment; seed 0.\relax }{figure.caption.27}{}}
+\newlabel{fig:ablation@cref}{{[figure][7][]7}{[1][9][]11}}
+\@writefile{toc}{\contentsline {paragraph}{The tension with \citet  {rizvimartel2026illusion}.}{11}{section*.32}\protected@file@percent }
+\citation{wu2025single}
+\citation{wu2025single}
+\bibstyle{plainnat}
+\bibdata{refs}
+\bibcite{aswal2026observable}{{1}{2026}{{Aswal et~al.}}{{Aswal, Ferraz, Zhou, and Peyrard}}}
+\bibcite{backour2026dynamics}{{2}{2026}{{Backour}}{{}}}
+\bibcite{butt2025soft}{{3}{2025}{{Butt et~al.}}{{Butt, Kwiatkowski, Labiad, Kempe, and Ollivier}}}
+\bibcite{cobbe2021gsm8k}{{4}{2021}{{Cobbe et~al.}}{{Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman}}}
+\bibcite{deepseekai2025r1}{{5}{2025}{{DeepSeek-AI}}{{}}}
+\bibcite{deng2025latent}{{6}{2025}{{Deng et~al.}}{{Deng, Pang, Wei, Xu, Duan, Xu, Song, Shen, and Cheng}}}
+\bibcite{elhage2022toy}{{7}{2022}{{Elhage et~al.}}{{Elhage, Hume, Olsson, Schiefer, Henighan, Kravec, Hatfield-Dodds, Lasenby, Drain, Chen, et~al.}}}
+\@writefile{toc}{\contentsline {paragraph}{What used superposition would require.}{12}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Limitations}{12}{section.6}\protected@file@percent }
+\newlabel{sec:limitations}{{6}{12}{Limitations}{section.6}{}}
+\newlabel{sec:limitations@cref}{{[section][6][]6}{[1][12][]12}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{12}{section.7}\protected@file@percent }
+\newlabel{sec:conclusion}{{7}{12}{Conclusion}{section.7}{}}
+\newlabel{sec:conclusion@cref}{{[section][7][]7}{[1][12][]12}}
+\bibcite{gumbel1954statistical}{{8}{1954}{{Gumbel}}{{}}}
+\bibcite{hao2024coconut}{{9}{2025}{{Hao et~al.}}{{Hao, Sukhbaatar, Su, Li, Hu, Weston, and Tian}}}
+\bibcite{jang2017categorical}{{10}{2017}{{Jang et~al.}}{{Jang, Gu, and Poole}}}
+\bibcite{jin2026final}{{11}{2026}{{Jin et~al.}}{{Jin, Yang, and Wang}}}
+\bibcite{kool2019stochastic}{{12}{2019}{{Kool et~al.}}{{Kool, van Hoof, and Welling}}}
+\bibcite{li2026dynamics}{{13}{2026}{{Li et~al.}}{{Li, Bai, Chen, Li, Yang, Lin, and Zhang}}}
+\bibcite{maddison2014sampling}{{14}{2014}{{Maddison et~al.}}{{Maddison, Tarlow, and Minka}}}
+\bibcite{maddison2017concrete}{{15}{2017}{{Maddison et~al.}}{{Maddison, Mnih, and Teh}}}
+\bibcite{mcnemar1947note}{{16}{1947}{{McNemar}}{{}}}
+\bibcite{meng2022locating}{{17}{2022}{{Meng et~al.}}{{Meng, Bau, Andonian, and Belinkov}}}
+\bibcite{rizvimartel2026illusion}{{18}{2026}{{Rizvi-Martel et~al.}}{{Rizvi-Martel, Rabusseau, and Mosbach}}}
+\bibcite{wei2022chain}{{19}{2022}{{Wei et~al.}}{{Wei, Wang, Schuurmans, Bosma, Ichter, Xia, Chi, Le, and Zhou}}}
+\bibcite{wilson1927probable}{{20}{1927}{{Wilson}}{{}}}
+\bibcite{wu2025single}{{21}{2026}{{Wu et~al.}}{{Wu, Lu, Ren, Hu, Wu, Dai, and Wu}}}
+\bibcite{zhang2025latent}{{22}{2025{a}}{{Zhang et~al.}}{{Zhang, Tang, Ju, Duan, and Liu}}}
+\bibcite{zhang2025soft}{{23}{2025{b}}{{Zhang et~al.}}{{Zhang, He, Yan, Shen, Zhao, Wang, Shen, and Wang}}}
+\bibcite{zheng2025softgrpo}{{24}{2025}{{Zheng et~al.}}{{Zheng, Gu, Liu, Teh, and Lee}}}
+\bibcite{zhu2025superposition}{{25}{2025}{{Zhu et~al.}}{{Zhu, Hao, Hu, Jiao, Russell, and Tian}}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Pre-registration record}{15}{appendix.A}\protected@file@percent }
+\newlabel{app:prereg}{{A}{15}{Pre-registration record}{appendix.A}{}}
+\newlabel{app:prereg@cref}{{[appendix][1][2147483647]A}{[1][15][]15}}
+\@writefile{toc}{\contentsline {section}{\numberline {B}Robustness of the storage results}{15}{appendix.B}\protected@file@percent }
+\newlabel{app:robust}{{B}{15}{Robustness of the storage results}{appendix.B}{}}
+\newlabel{app:robust@cref}{{[appendix][2][2147483647]B}{[1][15][]15}}
+\@writefile{lot}{\contentsline {table}{\numberline {A1}{\ignorespaces Robustness of the patching shares in Figure\nobreakspace  {}5. Pooled: share of the summed blend--control gap closed (as plotted). Gap $\geq $ 0.1: the same, keeping only forks whose gap is at least 0.1. Leave one out: range of the pooled share when each problem is dropped in turn. Median: median of per-fork shares over forks with gap $\geq $ 0.1. Exp\nobreakspace  {}21, GSM8K items 10--49, 50/50 blends, forks where the model followed the chosen token.\relax }}{16}{table.caption.35}\protected@file@percent }
+\newlabel{tab:fig5-robust}{{A1}{16}{Robustness of the patching shares in Figure~5. Pooled: share of the summed blend--control gap closed (as plotted). Gap $\geq $ 0.1: the same, keeping only forks whose gap is at least 0.1. Leave one out: range of the pooled share when each problem is dropped in turn. Median: median of per-fork shares over forks with gap $\geq $ 0.1. Exp~21, GSM8K items 10--49, 50/50 blends, forks where the model followed the chosen token.\relax }{table.caption.35}{}}
+\newlabel{tab:fig5-robust@cref}{{[table][1][2147483647]A1}{[1][16][]16}}
+\@writefile{lot}{\contentsline {table}{\numberline {A2}{\ignorespaces Number vs number single layers that stand out in Figure\nobreakspace  {}5c. 95\% CI: bootstrap over problems (2,000 resamples). Corrected lower: lower bound of the Bonferroni-corrected interval for all 56 single-layer tests (28 layers $\times $ remove/insert; 20,000 resamples). Every bound is above 0. The single-layer analysis was not pre-registered.\relax }}{16}{table.caption.36}\protected@file@percent }
+\newlabel{tab:fig5-singles}{{A2}{16}{Number vs number single layers that stand out in Figure~5c. 95\% CI: bootstrap over problems (2,000 resamples). Corrected lower: lower bound of the Bonferroni-corrected interval for all 56 single-layer tests (28 layers $\times $ remove/insert; 20,000 resamples). Every bound is above 0. The single-layer analysis was not pre-registered.\relax }{table.caption.36}{}}
+\newlabel{tab:fig5-singles@cref}{{[table][2][2147483647]A2}{[1][16][]16}}
+\@writefile{toc}{\contentsline {section}{\numberline {C}Embedding-norm check for the random-residual control}{16}{appendix.C}\protected@file@percent }
+\newlabel{app:norms}{{C}{16}{Embedding-norm check for the random-residual control}{appendix.C}{}}
+\newlabel{app:norms@cref}{{[appendix][3][2147483647]C}{[1][16][]16}}
+\@writefile{lot}{\contentsline {table}{\numberline {A3}{\ignorespaces Number vs word forks (34 forks from 21 problems), not shown in Figure\nobreakspace  {}5. The mean blend--control gap is only 0.11, so the shares are unstable (wide CIs, values above 1 and below 0) and cannot localise the runner-up. 95\% CI: bootstrap over problems.\relax }}{17}{table.caption.37}\protected@file@percent }
+\newlabel{tab:fig5-nw}{{A3}{17}{Number vs word forks (34 forks from 21 problems), not shown in Figure~5. The mean blend--control gap is only 0.11, so the shares are unstable (wide CIs, values above 1 and below 0) and cannot localise the runner-up. 95\% CI: bootstrap over problems.\relax }{table.caption.37}{}}
+\newlabel{tab:fig5-nw@cref}{{[table][3][2147483647]A3}{[1][16][]17}}
+\@writefile{lof}{\contentsline {figure}{\numberline {A1}{\ignorespaces Readback at each position of the forced text, without the binning of \cref  {fig:readback}b--c. Top: mean readback (control minus blend) with 95\% bootstrap CIs over problems, for the runner-up's text (left) and the model's own text (right). Bottom: number of forks with a defined score at that position (positions where the chosen token and the runner-up barely differ are skipped). With the runner-up's text, the mean stays above 0 at every position for number vs number and word vs word; with the model's own text it stays around 0. Single positions hold few forks, so their CIs are wide; this is why \cref  {fig:readback} pools positions into log-spaced bins.\relax }}{17}{figure.caption.38}\protected@file@percent }
+\newlabel{fig:readback-unbinned}{{A1}{17}{Readback at each position of the forced text, without the binning of \cref {fig:readback}b--c. Top: mean readback (control minus blend) with 95\% bootstrap CIs over problems, for the runner-up's text (left) and the model's own text (right). Bottom: number of forks with a defined score at that position (positions where the chosen token and the runner-up barely differ are skipped). With the runner-up's text, the mean stays above 0 at every position for number vs number and word vs word; with the model's own text it stays around 0. Single positions hold few forks, so their CIs are wide; this is why \cref {fig:readback} pools positions into log-spaced bins.\relax }{figure.caption.38}{}}
+\newlabel{fig:readback-unbinned@cref}{{[figure][1][2147483647]A1}{[1][16][]17}}
+\@writefile{toc}{\contentsline {section}{\numberline {D}Reproducibility}{17}{appendix.D}\protected@file@percent }
+\newlabel{app:repro}{{D}{17}{Reproducibility}{appendix.D}{}}
+\newlabel{app:repro@cref}{{[appendix][4][2147483647]D}{[1][17][]17}}
+\@writefile{toc}{\contentsline {paragraph}{Model and software.}{17}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Code, outputs and checks.}{17}{section*.41}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {A2}{\ignorespaces Per-fork shares behind the pooled bars of \cref  {fig:patch}, for layer 0 and layers 0--3. Each dot is one fork with a blend--control gap of at least 0.1 (78 number vs number forks, 108 word vs word); filled = remove, open = insert. Black bar: median per fork. Diamond: pooled share, as plotted in \cref  {fig:patch}. For number vs number, layer 0 is uneven across forks: half of them have a remove share below 0.12 and a quarter are above 0.68, so the pooled 0.38 sits well above the median fork (0.12; insert: 0.16 vs 0.02). For layers 0--3 the median fork is close to the pooled share. Dots outside the axis range are drawn at its edge as triangles.\relax }}{18}{figure.caption.39}\protected@file@percent }
+\newlabel{fig:perfork}{{A2}{18}{Per-fork shares behind the pooled bars of \cref {fig:patch}, for layer 0 and layers 0--3. Each dot is one fork with a blend--control gap of at least 0.1 (78 number vs number forks, 108 word vs word); filled = remove, open = insert. Black bar: median per fork. Diamond: pooled share, as plotted in \cref {fig:patch}. For number vs number, layer 0 is uneven across forks: half of them have a remove share below 0.12 and a quarter are above 0.68, so the pooled 0.38 sits well above the median fork (0.12; insert: 0.16 vs 0.02). For layers 0--3 the median fork is close to the pooled share. Dots outside the axis range are drawn at its edge as triangles.\relax }{figure.caption.39}{}}
+\newlabel{fig:perfork@cref}{{[figure][2][2147483647]A2}{[1][16][]18}}
+\@writefile{toc}{\contentsline {section}{\numberline {E}Use of AI assistants}{18}{appendix.E}\protected@file@percent }
+\newlabel{app:aiuse}{{E}{18}{Use of AI assistants}{appendix.E}{}}
+\newlabel{app:aiuse@cref}{{[appendix][5][2147483647]E}{[1][18][]18}}
+\gdef \@abspage@last{18}

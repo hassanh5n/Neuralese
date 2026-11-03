@@ -1,0 +1,68 @@
+% Fig 1: concept diagram (TikZ). In the paper:
+%   \begin{figure*}[t] \centering \input{figures/fig1.tex} \caption{...} \label{fig:concept} \end{figure*}
+% Preamble needs \usepackage{tikz} and \usetikzlibrary{arrows.meta,decorations.pathreplacing}.
+% Drawn at final size (under the 6.5 in text width); include it as is, never scaled, so text stays 7-8 pt.
+% Draft caption:
+%   Gumbel Soft Thinking feeds the sampled token plus a residual. At each thinking step the model gives next-token
+%   probabilities. Sampling feeds one token. Gumbel Soft Thinking adds Gumbel noise and feeds the softmax-weighted
+%   mix of token embeddings; by the Gumbel-max trick, its top token is distributed exactly as the sampled one (and
+%   is the same token when both use the same noise, as in Exp 23), so all it adds is the residual (blue). The
+%   random-residual control keeps the top token and the residual's size but moves the residual to a random token
+%   (orange). Weights are illustrative.
+% No data numbers. Colours match figures/style.py: sampling grey, Gumbel Soft Thinking blue, control orange.
+\definecolor{fsamp}{HTML}{7F7F7F}%
+\definecolor{fsoft}{HTML}{0072B2}%
+\definecolor{frand}{HTML}{E69F00}%
+\definecolor{fdark}{HTML}{333333}%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\footnotesize, line width=0.5pt,
+    >={Stealth[length=4.5pt, width=4pt]},
+    wire/.style={line width=0.8pt, fdark},
+    lab/.style={font=\scriptsize, inner sep=1pt, text=fdark},
+    inbar/.style={font=\scriptsize\ttfamily, text=white, inner sep=0pt},
+    brace/.style={decorate, decoration={brace, amplitude=3.5pt}, black!55, line width=0.5pt}]
+\def\L{5.5}            % bar length = weight 1
+\def\xb{7.45}           % bar start
+\pgfmathsetmacro{\xt}{\xb + 0.75*\L}   % end of the top token (weight 0.75)
+\pgfmathsetmacro{\xe}{\xb + \L}
+
+% ---- next-token probabilities ----
+\node[lab, align=center, anchor=south] at (1.45, 2.95) {next-token\\[-1pt]probabilities};
+\foreach \x/\p/\t in {0.8/0.55/7, 1.45/0.35/8, 2.1/0.10/12} {
+  \draw[fdark, fill=white] (\x-0.21, 0.6) rectangle (\x+0.21, 0.6+3.9*\p*0.95);
+  \node[lab, font=\scriptsize\ttfamily, anchor=north] at (\x, 0.55) {\t};
+}
+\draw[fdark] (0.4, 0.6) -- (2.5, 0.6);
+
+% ---- three ways to feed it ----
+\draw[wire] (2.65, 1.975) -- (3.2, 1.975);
+\draw[wire] (3.2, 0.725) -- (3.2, 3.225);
+\foreach \y/\t in {3.225/{sample one token}, 1.975/{add Gumbel noise, softmax}, 0.725/{same, then move the residual}} {
+  \draw[wire, ->] (3.2, \y) -- (\xb-0.08, \y);
+  \node[lab, anchor=south] at ({(3.2+\xb)/2}, \y+0.03) {\t};
+}
+\fill[fdark] (3.2, 1.975) circle (1.3pt);
+
+% ---- what is fed: one bar per method, length = total weight 1 ----
+\fill[fsamp] (\xb, 3.0) rectangle (\xe, 3.45);
+\node[inbar] at ({(\xb+\xt)/2}, 3.225) {7};
+\fill[fsamp] (\xb, 1.75) rectangle (\xt, 2.2);
+\fill[fsoft] (\xt, 1.75) rectangle ({\xb+0.95*\L}, 2.2);
+\fill[fsoft!55] ({\xb+0.95*\L}, 1.75) rectangle (\xe, 2.2);
+\draw[white, line width=0.8pt] ({\xb+0.95*\L}, 1.75) -- ({\xb+0.95*\L}, 2.2);
+\node[inbar] at ({(\xb+\xt)/2}, 1.975) {7};
+\node[inbar] at ({\xt+0.1*\L}, 1.975) {8};
+\fill[fsamp] (\xb, 0.5) rectangle (\xt, 0.95);
+\fill[frand] (\xt, 0.5) rectangle (\xe, 0.95);
+\node[inbar] at ({(\xb+\xt)/2}, 0.725) {7};
+\draw[black!35, dash pattern=on 2pt off 1.5pt] (\xt, 0.35) -- (\xt, 3.6);
+
+% ---- braces: the shared top token and the residual ----
+\draw[brace] (\xb, 3.62) -- (\xt-0.04, 3.62) node[midway, above=4pt, lab] {top token (the same in all three)};
+\draw[brace] (\xt+0.04, 3.62) -- (\xe, 3.62) node[midway, above=4pt, lab] {residual};
+
+% ---- names ----
+\foreach \y/\c/\n/\d in {3.225/fsamp/{sampling}/{one token}, 1.975/fsoft/{Gumbel Soft Thinking}/{token $+$ residual},
+                         0.725/frand/{random-residual control}/{residual on a random token}} {
+  \node[lab, anchor=west, align=left, text=\c] at (\xe+0.18, \y) {\textbf{\n}\\[-1pt]\textcolor{fdark}{\d}};
+}
+\end{tikzpicture}

@@ -1,0 +1,10 @@
+\section{Robustness of the storage results}\label{app:robust}
+
+The tables and figures in this appendix back \cref{fig:readback,fig:patch}.
+\Cref{tab:fig5-robust} recomputes the pooled patching shares when only forks with a gap of at least 0.1 are kept, % C21.32
+when each problem is dropped in turn, and as a median over forks.
+\Cref{tab:fig5-singles} gives the number vs number single layers that stand out, with Bonferroni-corrected lower
+bounds over all 56 single-layer tests. % C21.35
+\Cref{tab:fig5-nw} reports the number vs word blocks, whose gap is too small to localise.
+\Cref{fig:readback-unbinned} shows the readback at single positions of the forced text, and \cref{fig:perfork} the
+per-fork spread behind the pooled shares.

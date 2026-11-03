@@ -1,0 +1,16 @@
+\section{Embedding-norm check for the random-residual control}\label{app:norms}
+
+The \ctrl{} of Exp~23 moves the residual onto a random vocabulary row.
+If random rows had much smaller norms than the tokens the model reads while reasoning, the control would carry a weaker
+signal than \ST{}, and the KL comparison of \cref{sec:q4} would be unfair to it.
+We regenerated the 8,192 random rows that Exp~23 drew, with the same keyed generator, % C23.13
+and compared their norms with all real-token rows and with 9,168 tokens from sampled reasoning traces on 5 problems % C23.13
+(items 50--54). % C23.10
+The median norm is 1.195 for the random rows, 1.195 for all real-token rows, 1.196 when real rows are weighted % C23.10
+by usage, and 1.202 for reasoning tokens. % C23.10
+The ratio of random rows to reasoning tokens is 0.994 at the median and 0.961 at the mean. % C23.11
+The random rows have a heavier low tail (10th percentile 0.897 against 1.058), so a minority of draws carries a % C23.12
+weaker signal.
+This cannot explain a median KL ratio of 3.9 between \ST{} and the control. % C23.15
+These values come from the saved output of a separate GPU run (\texttt{neuralese\_exp23\_norms.py}); the check
+scripts compare against that output rather than recompute it from the model.

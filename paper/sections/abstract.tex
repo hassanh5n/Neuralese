@@ -1,0 +1,20 @@
+\begin{abstract}
+\noindent
+\ST{} feeds a reasoning model blends of token embeddings instead of single tokens, in the hope that the model can
+carry several reasoning paths in superposition.
+Recent work adds Gumbel noise to the blend weights to avoid greedy collapse.
+With that noise, the top token of each blend is distributed exactly as a sampled token, so \GST{} is ordinary sampling
+plus a residual weight on the other candidates.
+We ask whether the model stores and uses that residual, in DeepSeek-R1-Distill-Qwen-1.5B on GSM8K. % SETUP
+Blends of two candidates collapse gradually through the layers.
+Yet the runner-up is stored, mostly in the keys and values of layers 0 to 7, and can be read back by later text % C21.10
+(readback $+0.44$, 95\% CI [0.35, 0.53], for number vs number forks); on the model's own path it stays dormant. % C21.7-8
+In real runs the residual is small (median 0.12 at forks), and the top token changes as often as under % C22.12
+sampling (0.45 vs 0.45). % C22.4
+A coupled ablation with shared noise shows that the model reads the residual: it moves next-token predictions a
+median 3.9 times as much as a random residual of the same size (95\% CI [3.1, 5.0]). % C23.15
+Accuracy does not change detectably (88 vs 86 of 100, McNemar $p = 0.754$), % C23.1 C23.2
+and the real residual changes the final answer no more often than a random one (both keep sampling's answer on 84 of 100). % C23.2 C23.3
+In this model and task, the residual is stored and read, yet in accuracy \GST{} behaves like sampling;
+we find no superposition that is used. The main predictions were committed before the runs, and every number from our experiments is recomputed from saved outputs.
+\end{abstract}

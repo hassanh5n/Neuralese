@@ -1,0 +1,99 @@
+\section{Introduction}\label{sec:intro}
+
+A reasoning model that writes out its chain of thought commits to one token at every step \citep{wei2022chain}.
+The other candidates at that step are discarded.
+Latent reasoning methods relax this commitment by feeding the model continuous states instead of tokens
+\citep{hao2024coconut,zhang2025soft}.
+A common motivation is \emph{superposition}: a continuous state might hold several candidate paths at once and let
+the model explore them in parallel.
+In theory this can help, since a two-layer transformer with continuous thoughts can solve graph reachability by
+keeping several search frontiers in one state \citep{zhu2025superposition}.
+\ST{} \citep{zhang2025soft} was proposed with the same intuition.
+It needs no training: at each thinking step it feeds the probability-weighted average of the top candidates'
+embeddings in place of one sampled token.
+
+Whether off-the-shelf models use these blends is contested.
+\citet{wu2025single} find that vanilla \ST{} is dominated by its top token and drifts into greedy, repetitive
+decoding, which they call the Greedy Pitfall.
+They add Dirichlet or Gumbel noise to the blend weights and report small accuracy gains over matched sampling.
+\citet{rizvimartel2026illusion} find no sign that vanilla \ST{} reasons in superposition,
+and \citet{backour2026dynamics} shows that pretrained models collapse injected mixtures of embeddings through depth.
+
+Gumbel noise also changes what the superposition question asks.
+By the Gumbel-max trick \citep{gumbel1954statistical,maddison2014sampling}, the top token of a Gumbel blend is
+distributed exactly as a sampled token.
+\GST{} therefore feeds the token that sampling would feed, plus a \emph{residual}: the blend weight that sits on the
+other candidates (\cref{fig:concept}).
+If the model ignores the residual, \GST{} is sampling in disguise.
+If the model carries both candidates forward and uses them, it reasons in genuine superposition.
+A third outcome lies between the two: the model may read the residual without its answers depending on it.
+Our research question is which of these holds:
+\begin{quote}
+\emph{Does \GST{} reason in superposition, or is it sampling in disguise?}
+\end{quote}
+
+We split the question into four measurements (\cref{fig:questions}) on DeepSeek-R1-Distill-Qwen-1.5B % SETUP
+\citep{deepseekai2025r1} solving GSM8K problems \citep{cobbe2021gsm8k}.
+Q1 asks whether a blend of two candidates survives the layers.
+Q2 asks whether the losing candidate, the runner-up, is stored in the key-value cache and can be read back later.
+Q3 asks what blends the noise actually feeds in real runs.
+Q4 asks whether the residual changes the model's next-token predictions and its final answers.
+We committed numeric predictions for the main tests before running them.
+
+Our answer is the third outcome.
+In this model, \GST{} is a sampled token plus a residual.
+The model stores the runner-up and reads the residual, but accuracy does not change detectably.
+In accuracy it behaves like sampling, although the model does read the residual, and we find no superposition
+that is used.
+Our contributions are as follows.
+\begin{itemize}[leftmargin=1.2em,itemsep=2pt,topsep=3pt]
+\item \textbf{\GST{} is sampling plus a residual.}
+We make the Gumbel-max consequence explicit and confirm it in logged runs:
+at forks the top token changes at a rate of 0.45, the same as under sampling (0.45). % C22.4
+Real forks feed lopsided blends, near one token at 47\% of forks, with a median residual of 0.12. % C22.11 C22.12
+Dirichlet noise does not even match sampling: its top token leans toward the model's first choice
+(\cref{sec:q3}).
+\item \textbf{The runner-up is stored.}
+Blends collapse gradually through the layers, as \citet{backour2026dynamics} found in other models.
+Yet the runner-up stays mostly in the keys and values of layers 0 to 7, which close a pooled share of 0.71 to 0.91 % C21.10
+of the readback gap (pre-registered); part of this is an echo of the input in the first layers. % C21.10
+Later text that turns toward the runner-up reads it back ($+0.44$ for number vs number forks). % C21.7-8
+On the model's own path it is dormant (\cref{sec:q1,sec:q2}).
+\item \textbf{The model reads the residual, but accuracy does not change.}
+A coupled ablation runs sampling, \ST{} and a \ctrl{} in lockstep with shared noise.
+\ST{} leaves sampling first on 59 problems against 24 for the control ($p = 0.0002$) % C23.5-6
+and moves next-token predictions a median 3.9 times as much (95\% CI [3.1, 5.0]). % C23.15
+Accuracy does not change detectably (88 vs 86 of 100, McNemar $p = 0.754$), % C23.1 C23.2
+and the real residual changes final answers no more often than a random one (\cref{sec:q4}).
+\item \textbf{A checkable study.}
+Predictions were committed before the runs and the failed ones are reported as written (\cref{app:prereg}).
+Every number from our experiments is recomputed from saved outputs by scripts in our repository (\cref{app:repro}).
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\input{figures/fig1.tex}
+\caption{\GST{} feeds the sampled token plus a residual.
+At each thinking step the model gives next-token probabilities.
+Sampling feeds one token.
+\GST{} adds Gumbel noise and feeds the softmax-weighted mix of token embeddings.
+By the Gumbel-max trick, its top token is distributed exactly as the sampled one,
+and it is the same token when both use the same noise in the same context, as in our coupled ablation (\cref{sec:q4}).
+So all it adds is the residual (blue).
+The \ctrl{} keeps the top token and the residual's size but moves the residual to a random token (orange).
+Weights are illustrative.}
+\label{fig:concept}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\input{figures/fig2.tex}
+\caption{The four questions we test.
+(1) Does a blend of two candidates survive the layers, or snap to one of them (\cref{fig:snap})?
+(2) Is the runner-up stored in the K,V cache, and can later steps read it back (\cref{fig:readback,fig:patch})?
+(3) What blends does the noise actually feed in real runs (\cref{fig:fed})?
+(4) Does the residual move the model's next-token predictions more than a random residual of the same size
+(\cref{fig:ablation}, \cref{tab:accuracy})?
+Drawings are schematic.}
+\label{fig:questions}
+\end{figure}
